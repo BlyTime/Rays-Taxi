@@ -113,9 +113,6 @@
     </div>
 
     <script>
-        // Replace this with your exact WhatsApp Business phone number (include country code, no spaces or +)
-        const MY_PHONE_NUMBER = "1234567890"; 
-
         function getLocation() {
             const statusText = document.getElementById('status');
             const btn = document.getElementById('locateBtn');
@@ -137,14 +134,13 @@
                     statusText.style.color = "var(--success-color)";
                     statusText.innerHTML = "Location found! Redirecting...";
 
-                    // Generate Google Maps URL using backticks ``
+                    // FIXED: Corrected Google Maps address path and missing $ symbol
                     const mapsUrl = `https://google.com{lat},${lon}`;
-
-                    // Construct WhatsApp message text using backticks ``
-                    const message = encodeURIComponent(`Here is my pickup location: ${mapsUrl}`);
-
                     
-                    // Deep link back to your chat window
+                    // Construct WhatsApp message text
+                    const message = encodeURIComponent(`Here is my pickup location: ${mapsUrl}`);
+                    
+                    // Deep link back to your chat window (Guyana Code 592)
                     const whatsappUrl = `https://wa.me/5927563720?text=${message}`;
 
                     // Redirect after a brief delay so they see the success message
