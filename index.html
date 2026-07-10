@@ -1,180 +1,276 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Private Taxi Pickup</title>
-    <style>
-        :root {
-            --bg-color: #0f172a;
-            --card-bg: #1e293b;
-            --text-color: #f8fafc;
-            --accent-color: #eab308; /* Taxi Yellow */
-            --success-color: #22c55e;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            margin: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-        }
+<title>Ray's Taxi</title>
 
-        .container {
-            text-align: center;
-            padding: 2.5rem;
-            background: var(--card-bg);
-            border-radius: 16px;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
-            max-width: 350px;
-            width: 90%;
-        }
+<style>
 
-        /* Minimalist Taxi Graphic */
-        .icon-container {
-            width: 80px;
-            height: 80px;
-            background: rgba(234, 179, 8, 0.1);
-            border-radius: 50%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            margin: 0 auto 1.5rem auto;
-        }
+body{
+    margin:0;
+    font-family:Arial,Helvetica,sans-serif;
+    background:#101820;
+    color:white;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+}
 
-        svg {
-            width: 45px;
-            height: 45px;
-            fill: var(--accent-color);
-        }
+.card{
 
-        h1 {
-            font-size: 1.5rem;
-            margin-bottom: 0.5rem;
-            font-weight: 600;
-        }
+    width:90%;
+    max-width:380px;
 
-        p {
-            color: #94a3b8;
-            font-size: 0.95rem;
-            line-height: 1.5;
-            margin-bottom: 2rem;
-        }
+    background:#1d2939;
 
-        .btn {
-            background-color: var(--accent-color);
-            color: #000000;
-            border: none;
-            padding: 0.85rem 1.5rem;
-            font-size: 1rem;
-            font-weight: 700;
-            border-radius: 8px;
-            cursor: pointer;
-            width: 100%;
-            transition: transform 0.1s ease, opacity 0.2s ease;
-        }
+    border-radius:18px;
 
-        .btn:active {
-            transform: scale(0.98);
-        }
+    padding:30px;
 
-        .btn:disabled {
-            background-color: #475569;
-            color: #94a3b8;
-            cursor: not-allowed;
-        }
+    box-sizing:border-box;
 
-        #status {
-            margin-top: 1rem;
-            font-size: 0.85rem;
-            color: #cbd5e1;
-        }
-    </style>
+    text-align:center;
+
+    box-shadow:0 15px 40px rgba(0,0,0,.4);
+
+}
+
+.logo{
+
+    font-size:60px;
+
+}
+
+h1{
+
+    margin-top:10px;
+    margin-bottom:5px;
+
+}
+
+p{
+
+    color:#c7c7c7;
+    line-height:1.5;
+
+}
+
+button{
+
+    width:100%;
+
+    margin-top:25px;
+
+    padding:16px;
+
+    border:none;
+
+    border-radius:10px;
+
+    background:#FFD400;
+
+    color:black;
+
+    font-size:18px;
+
+    font-weight:bold;
+
+    cursor:pointer;
+
+}
+
+button:disabled{
+
+    background:#555;
+
+    color:#aaa;
+
+}
+
+#status{
+
+    margin-top:20px;
+
+    font-size:15px;
+
+}
+
+.small{
+
+    font-size:12px;
+
+    color:#888;
+
+    margin-top:15px;
+
+}
+
+</style>
+
 </head>
+
 <body>
 
-    <div class="container">
-        <div class="icon-container">
-            <!-- Minimalist Taxi SVG Icon -->
-            <svg viewBox="0 0 24 24">
-                <path d="M18.92 11.01C18.72 10.42 18.16 10 17.5 10H6.5c-.66 0-1.22.42-1.42 1.01L3 17v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.85 12h10.3l1.04 3H5.81l1.04-3zM6 21c-.83 0-1.5-.67-1.5-1.5S5.17 18 6 18s1.5.67 1.5 1.5S6.83 21 6 21zm12 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
-            </svg>
-        </div>
-        
-        <h1>Share Your Location</h1>
-        <p>Tap the button below to automatically send your current pickup location back to our WhatsApp chat.</p>
-        
-        <button class="btn" id="locateBtn" onclick="getLocation()">Send Location via WhatsApp</button>
-        <div id="status"></div>
-    </div>
+<div class="card">
 
-    <script>
-        function getLocation() {
-            const statusText = document.getElementById('status');
-            const btn = document.getElementById('locateBtn');
-            
-            if (!navigator.geolocation) {
-                statusText.innerHTML = "Geolocation is not supported by your browser.";
-                return;
-            }
+<div class="logo">🚖</div>
 
-            btn.disabled = true;
-            statusText.innerHTML = "Locating your position...";
+<h1>Zamzi Taxi</h1>
 
-            navigator.geolocation.getCurrentPosition(
-                // Success Callback
-                (position) => {
-                    const lat = position.coords.latitude;
-                    const lon = position.coords.longitude;
-                    
-                    statusText.style.color = "var(--success-color)";
-                    statusText.innerHTML = "Location found! Redirecting...";
+<p>
 
-                    // FIXED: Corrected Google Maps address path and added the missing $ symbol
-                    const mapsUrl = `https://google.com{lat},${lon}`;
-                    
-                    // Construct WhatsApp message text
-                    const message = encodeURIComponent(`Here is my pickup location: ${mapsUrl}`);
-                    
-                    // FIXED: Ensured the link correctly targets wa.me with the system variable
-                    const whatsappUrl = `https://wa.me/5927563720?text=${message}`;
+Tap the button below to automatically send your pickup location to our WhatsApp.
 
-                    // Redirect after a brief delay so they see the success message
-                    setTimeout(() => {
-                        window.location.href = whatsappUrl;
-                        btn.disabled = false;
-                    }, 800);
-                },
-                // Error Callback
-                (error) => {
-                    btn.disabled = false;
-                    statusText.style.color = "#ef4444"; // Error red
-                    switch(error.code) {
-                        case error.PERMISSION_DENIED:
-                            statusText.innerHTML = "Please allow location access to continue.";
-                            break;
-                        case error.POSITION_UNAVAILABLE:
-                            statusText.innerHTML = "Location information is unavailable.";
-                            break;
-                        case error.TIMEOUT:
-                            statusText.innerHTML = "The request timed out. Please try again.";
-                            break;
-                        default:
-                            statusText.innerHTML = "An unknown error occurred.";
-                    }
-                },
-                // Configuration settings for better accuracy
-                {
-                    enableHighAccuracy: true,
-                    timeout: 8000,
-                    maximumAge: 0
-                }
-            );
-        }
-    </script>
+</p>
+
+<button id="sendButton">
+
+Share My Location
+
+</button>
+
+<div id="status"></div>
+
+<div class="small">
+
+Location permission is required.
+
+</div>
+
+</div>
+
+<script>
+
+const phone="5927563720";
+
+const button=document.getElementById("sendButton");
+
+const status=document.getElementById("status");
+
+button.addEventListener("click",getLocation);
+
+function getLocation(){
+
+button.disabled=true;
+
+status.style.color="white";
+
+status.innerHTML="📡 Finding your GPS location...";
+
+if(!navigator.geolocation){
+
+status.innerHTML="Your browser does not support GPS.";
+
+button.disabled=false;
+
+return;
+
+}
+
+navigator.geolocation.getCurrentPosition(success,error,{
+
+enableHighAccuracy:true,
+
+timeout:10000,
+
+maximumAge:10000
+
+});
+
+}
+
+function success(position){
+
+const lat=position.coords.latitude;
+
+const lon=position.coords.longitude;
+
+const accuracy=Math.round(position.coords.accuracy);
+
+const mapsLink=`https://www.google.com/maps/search/?api=1&query=${lat},${lon}`;
+
+const message=encodeURIComponent(
+
+`🚖 Zamzi Taxi Pickup Request
+
+📍 Google Maps:
+${mapsLink}
+
+Latitude:
+${lat}
+
+Longitude:
+${lon}
+
+GPS Accuracy:
+${accuracy} meters`
+
+);
+
+const whatsapp=`https://wa.me/${phone}?text=${message}`;
+
+status.style.color="#00ff88";
+
+status.innerHTML=`
+✅ Location Found
+
+<br><br>
+
+Accuracy: ${accuracy} meters
+
+<br><br>
+
+Opening WhatsApp...
+`;
+
+setTimeout(()=>{
+
+window.location.href=whatsapp;
+
+button.disabled=false;
+
+},1200);
+
+}
+
+function error(err){
+
+button.disabled=false;
+
+status.style.color="#ff6666";
+
+switch(err.code){
+
+case err.PERMISSION_DENIED:
+
+status.innerHTML="❌ Location permission denied.";
+
+break;
+
+case err.POSITION_UNAVAILABLE:
+
+status.innerHTML="❌ GPS unavailable.";
+
+break;
+
+case err.TIMEOUT:
+
+status.innerHTML="❌ GPS timed out.";
+
+break;
+
+default:
+
+status.innerHTML="❌ Unknown error.";
+
+}
+
+}
+
+</script>
+
 </body>
 </html>
