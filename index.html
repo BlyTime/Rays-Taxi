@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Private Taxi Pickup</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-color: #f8fafc;
+            --accent-color: #eab308; /* Taxi Yellow */
+            --success-color: #22c55e;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            text-align: center;
+            padding: 2.5rem;
+            background: var(--card-bg);
+            border-radius: 16px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+            max-width: 350px;
+            width: 90%;
+        }
+
+        /* Minimalist Taxi Graphic */
+        .icon-container {
+            width: 80px;
+            height: 80px;
+            background: rgba(234, 179, 8, 0.1);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0 auto 1.5rem auto;
+        }
+
+        svg {
+            width: 45px;
+            height: 45px;
+            fill: var(--accent-color);
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        p {
+            color: #94a3b8;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            margin-bottom: 2rem;
+        }
+
+        .btn {
+            background-color: var(--accent-color);
+            color: #000000;
+            border: none;
+            padding: 0.85rem 1.5rem;
+            font-size: 1rem;
+            font-weight: 700;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            transition: transform 0.1s ease, opacity 0.2s ease;
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn:disabled {
+            background-color: #475569;
+            color: #94a3b8;
+            cursor: not-allowed;
+        }
+
+        #status {
+            margin-top: 1rem;
+            font-size: 0.85rem;
+            color: #cbd5e1;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="icon-container">
+            <!-- Minimalist Taxi SVG Icon -->
+            <svg viewBox="0 0 24 24">
+                <path d="M18.92 11.01C18.72 10.42 18.16 10 17.5 10H6.5c-.66 0-1.22.42-1.42 1.01L3 17v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.85 12h10.3l1.04 3H5.81l1.04-3zM6 21c-.83 0-1.5-.67-1.5-1.5S5.17 18 6 18s1.5.67 1.5 1.5S6.83 21 6 21zm12 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
+            </svg>
+        </div>
+        
+        <h1>Share Your Location</h1>
+        <p>Tap the button below to automatically send your current pickup location back to our WhatsApp chat.</p>
+        
+        <button class="btn" id="locateBtn" onclick="getLocation()">Send Location via WhatsApp</button>
+        <div id="status"></div>
+    </div>
+
+    <script>
+        // Replace this with your exact WhatsApp Business phone number (include country code, no spaces or +)
+        const MY_PHONE_NUMBER = "1234567890"; 
+
+        function getLocation() {
+            const statusText = document.getElementById('status');
+            const btn = document.getElementById('locateBtn');
+            
+            if (!navigator.geolocation) {
+                statusText.innerHTML = "Geolocation is not supported by your browser.";
+                return;
+            }
+
+            btn.disabled = true;
+            statusText.innerHTML = "Locating your position...";
+
+            navigator.geolocation.getCurrentPosition(
+                // Success Callback
+                (position) => {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+                    
+                    statusText.style.color = "var(--success-color)";
+                    statusText.innerHTML = "Location found! Redirecting...";
+
+                    // Generate Google Maps URL
+                    const mapsUrl = `https://google.com{lat},${lon}`;
+                    
+                    // Construct WhatsApp message text
+                    const message = encodeURIComponent(`Here is my pickup location: ${mapsUrl}`);
+                    
+                    // Deep link back to your chat window
+                    const whatsappUrl = `https://wa.me{5927563720}?text=${message}`;
+
+                    // Redirect after a brief delay so they see the success message
+                    setTimeout(() => {
+                        window.location.href = whatsappUrl;
+                        btn.disabled = false;
+                    }, 800);
+                },
+                // Error Callback
+                (error) => {
+                    btn.disabled = false;
+                    statusText.style.color = "#ef4444"; // Error red
+                    switch(error.code) {
+                        case error.PERMISSION_DENIED:
+                            statusText.innerHTML = "Please allow location access to continue.";
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            statusText.innerHTML = "Location information is unavailable.";
+                            break;
+                        case error.TIMEOUT:
+                            statusText.innerHTML = "The request timed out. Please try again.";
+                            break;
+                        default:
+                            statusText.innerHTML = "An unknown error occurred.";
+                    }
+                },
+                // Configuration settings for better accuracy
+                {
+                    enableHighAccuracy: true,
+                    timeout: 8000,
+                    maximumAge: 0
+                }
+            );
+        }
+    </script>
+</body>
+</html>
