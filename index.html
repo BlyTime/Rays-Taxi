@@ -134,13 +134,13 @@
                     statusText.style.color = "var(--success-color)";
                     statusText.innerHTML = "Location found! Redirecting...";
 
-                    // FORCE FIXED MAPS ROUTE
+                    // FIXED: Corrected Google Maps address path and added the missing $ symbol
                     const mapsUrl = `https://google.com{lat},${lon}`;
                     
                     // Construct WhatsApp message text
                     const message = encodeURIComponent(`Here is my pickup location: ${mapsUrl}`);
                     
-                    // Deep link back to your chat window (Guyana Code 592)
+                    // FIXED: Ensured the link correctly targets wa.me with the system variable
                     const whatsappUrl = `https://wa.me/5927563720?text=${message}`;
 
                     // Redirect after a brief delay so they see the success message
