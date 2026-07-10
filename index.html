@@ -137,11 +137,12 @@
                     statusText.style.color = "var(--success-color)";
                     statusText.innerHTML = "Location found! Redirecting...";
 
-                    // Generate Google Maps URL
+                    // Generate Google Maps URL using backticks ``
                     const mapsUrl = `https://google.com{lat},${lon}`;
-                    
-                    // Construct WhatsApp message text
+
+                    // Construct WhatsApp message text using backticks ``
                     const message = encodeURIComponent(`Here is my pickup location: ${mapsUrl}`);
+
                     
                     // Deep link back to your chat window
                     const whatsappUrl = `https://wa.me/5927563720?text=${message}`;
