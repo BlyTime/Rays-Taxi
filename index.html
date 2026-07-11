@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
@@ -58,11 +60,23 @@ p{
 
 }
 
+input{
+
+    width:100%;
+    padding:15px;
+    font-size:17px;
+    border:none;
+    border-radius:10px;
+    box-sizing:border-box;
+    margin-top:20px;
+
+}
+
 button{
 
     width:100%;
 
-    margin-top:25px;
+    margin-top:20px;
 
     padding:16px;
 
@@ -88,6 +102,8 @@ button:disabled{
 
     color:#aaa;
 
+    cursor:not-allowed;
+
 }
 
 #status{
@@ -95,6 +111,8 @@ button:disabled{
     margin-top:20px;
 
     font-size:15px;
+
+    line-height:1.6;
 
 }
 
@@ -120,23 +138,28 @@ button:disabled{
 
 <h1>Ray's Taxi</h1>
 
-<p>
+<p><b>Your driver is locating your pickup position.</b></p>
 
-<b>Tap the button below to send us your pickup location.</b>
+<input
+id="customerName"
+type="text"
+placeholder="Passenger's Name">
 
-</p>
+<button id="sendButton" disabled>
 
-<button id="sendButton">
-
-Request A Taxi
+📡 Finding Location...
 
 </button>
 
-<div id="status"></div>
+<div id="status">
+
+Requesting GPS permission...
+
+</div>
 
 <div class="small">
 
-Location permission is required.
+Please allow location access when prompted.
 
 </div>
 
@@ -150,127 +173,167 @@ const button=document.getElementById("sendButton");
 
 const status=document.getElementById("status");
 
-button.addEventListener("click",getLocation);
+let latitude="";
+let longitude="";
+let accuracy=0;
+
+window.onload=function(){
+
+    getLocation();
+
+};
 
 function getLocation(){
 
-button.disabled=true;
+    status.style.color="white";
 
-status.style.color="white";
+    status.innerHTML="📡 Finding your GPS location...";
 
-status.innerHTML="📡 Finding your GPS location...";
+    if(!navigator.geolocation){
 
-if(!navigator.geolocation){
+        status.innerHTML="❌ Your browser does not support GPS.";
 
-status.innerHTML="Your browser does not support GPS.";
+        return;
 
-button.disabled=false;
+    }
 
-return;
+    navigator.geolocation.getCurrentPosition(
 
-}
+        success,
 
-navigator.geolocation.getCurrentPosition(success,error,{
+        error,
 
-enableHighAccuracy:true,
+        {
 
-timeout:10000,
+            enableHighAccuracy:true,
 
-maximumAge:10000
+            timeout:10000,
 
-});
+            maximumAge:0
+
+        }
+
+    );
 
 }
 
 function success(position){
 
-const lat=position.coords.latitude;
+    latitude=position.coords.latitude;
 
-const lon=position.coords.longitude;
+    longitude=position.coords.longitude;
 
-const accuracy=Math.round(position.coords.accuracy);
+    accuracy=Math.round(position.coords.accuracy);
 
-const mapsLink=`https://www.google.com/maps/search/?api=1&query=${lat},${lon}`;
+    status.style.color="#00ff88";
 
-const message=encodeURIComponent(
+    status.innerHTML=
 
-`🚖Ray's Taxi Pickup Request
+    `
+
+    ✅ Location Found
+
+    <br><br>
+
+    GPS Accuracy:
+
+    <b>${accuracy} meters</b>
+
+    `;
+
+    button.disabled=false;
+
+    button.innerHTML="🚖 Send Taxi Request";
+
+}
+
+function sendWhatsApp(){
+
+    const passenger=document.getElementById("customerName").value.trim();
+
+    if(passenger===""){
+
+        alert("Please enter the passenger's name.");
+
+        return;
+
+    }
+
+    const mapsLink=`https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
+
+    let warning="";
+
+    if(accuracy>4){
+
+        warning=`
+
+⚠️ GPS accuracy is ${accuracy} meters.
+
+If possible, please reply with a nearby landmark photo to help your driver locate you faster.`;
+
+    }
+
+    const message=encodeURIComponent(
+
+`🚖 Ray's Taxi Pickup Request
+
+👤 Passenger's Name:
+${passenger}
 
 📍 Google Maps:
 ${mapsLink}
 
-Latitude:
-${lat}
+📌 Latitude:
+${latitude}
 
-Longitude:
-${lon}
+📌 Longitude:
+${longitude}
 
-GPS Accuracy:
-${accuracy} meters`
+📡 GPS Accuracy:
+${accuracy} meters${warning}`
 
 );
 
-const whatsapp=`https://wa.me/${phone}?text=${message}`;
-
-status.style.color="#00ff88";
-
-status.innerHTML=`
-✅ Location Found
-
-<br><br>
-
-Accuracy: ${accuracy} meters
-
-<br><br>
-
-Opening WhatsApp...
-`;
-
-setTimeout(()=>{
-
-window.location.href=whatsapp;
-
-button.disabled=false;
-
-},120);
+    window.location.href=`https://wa.me/${phone}?text=${message}`;
 
 }
 
 function error(err){
 
-button.disabled=false;
+    status.style.color="#ff6666";
 
-status.style.color="#ff6666";
+    switch(err.code){
 
-switch(err.code){
+        case err.PERMISSION_DENIED:
 
-case err.PERMISSION_DENIED:
+            status.innerHTML="❌ Location permission denied.";
 
-status.innerHTML="❌ Location permission denied.";
+            break;
 
-break;
+        case err.POSITION_UNAVAILABLE:
 
-case err.POSITION_UNAVAILABLE:
+            status.innerHTML="❌ GPS unavailable.";
 
-status.innerHTML="❌ GPS unavailable.";
+            break;
 
-break;
+        case err.TIMEOUT:
 
-case err.TIMEOUT:
+            status.innerHTML="❌ GPS request timed out.";
 
-status.innerHTML="❌ GPS timed out.";
+            break;
 
-break;
+        default:
 
-default:
+            status.innerHTML="❌ Unknown GPS error.";
 
-status.innerHTML="❌ Unknown error.";
-
-}
+    }
 
 }
+
+button.addEventListener("click",sendWhatsApp);
 
 </script>
 
 </body>
+
 </html>
