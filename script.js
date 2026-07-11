@@ -95,13 +95,8 @@ function success(position) {
 
 function sendWhatsApp() {
 
-    const passenger = document.getElementById("customerName").value.trim();
-
-    if (passenger === "") {
-
-        alert("Please enter the passenger's name.");
-
-        return;
+    const passenger =
+document.getElementById("customerName").value.trim() || "Not Provided";
 
     }
 
