@@ -95,11 +95,10 @@ function success(position) {
 
 function sendWhatsApp() {
 
-    const passenger =
-        document.getElementById("customerName").value.trim() || "Not Provided";
+    const passenger document.getElementById("customerName").value.trim() || "Not Provided";
 
-    const mapsLink =
-        `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
+
+    const mapsLink = `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
 
     let warning = "";
 
@@ -111,7 +110,6 @@ GPS signal is weak.
 
 Please reply with a nearby landmark photo to help your driver locate you faster.`;
 
-    }
     }
 
     const message = encodeURIComponent(
