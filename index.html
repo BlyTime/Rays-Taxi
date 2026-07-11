@@ -219,32 +219,39 @@ function getLocation(){
 
 function success(position){
 
-    latitude=position.coords.latitude;
+    let gpsStatus = "";
+let gpsColor = "";
 
-    longitude=position.coords.longitude;
+if (accuracy <= 4) {
+    gpsStatus = "🟢 Excellent";
+    gpsColor = "#00ff88";
+}
+else if (accuracy <= 10) {
+    gpsStatus = "🟡 Good";
+    gpsColor = "#ffd700";
+}
+else if (accuracy <= 20) {
+    gpsStatus = "🟠 Fair";
+    gpsColor = "#ff9800";
+}
+else {
+    gpsStatus = "🔴 Weak";
+    gpsColor = "#ff4444";
+}
 
-    accuracy=Math.round(position.coords.accuracy);
+status.style.color = gpsColor;
 
-    status.style.color="#00ff88";
+status.innerHTML = `
+<b>${gpsStatus} GPS Signal</b>
 
-    status.innerHTML=
+<br><br>
 
-    `
+Accuracy:
+<b>${accuracy} meters</b>
+`;
 
-    ✅ Location Found
-
-    <br><br>
-
-    GPS Accuracy:
-
-    <b>${accuracy} meters</b>
-
-    `;
-
-    button.disabled=false;
-
-    button.innerHTML="🚖 Send Taxi Request";
-
+button.disabled = false;
+button.innerHTML = "🚖 Send Taxi Request";
 }
 
 function sendWhatsApp(){
@@ -263,13 +270,14 @@ function sendWhatsApp(){
 
     let warning="";
 
-    if(accuracy>4){
+if(accuracy>20){
 
-        warning=`
+warning=`
 
-⚠️ GPS accuracy is ${accuracy} meters.
+GPS signal is weak.
 
-If possible, please reply with a nearby landmark photo to help your driver locate you faster.`;
+Please reply with a nearby landmark photo if possible.`;
+
 
     }
 
@@ -283,14 +291,11 @@ ${passenger}
 📍 Google Maps:
 ${mapsLink}
 
-📌 Latitude:
-${latitude}
+GPS Signal:
+${gpsStatus}
 
-📌 Longitude:
-${longitude}
-
-📡 GPS Accuracy:
-${accuracy} meters${warning}`
+Accuracy:
+${accuracy} meters
 
 );
 
