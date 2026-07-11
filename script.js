@@ -95,7 +95,7 @@ function success(position) {
 
 function sendWhatsApp() {
 
-    const passenger document.getElementById("customerName").value.trim();
+    const passenger = document.getElementById("customerName").value.trim() || "Not Provided";
 
 
     const mapsLink = `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
