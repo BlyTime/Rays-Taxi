@@ -89,7 +89,7 @@ function success(position) {
 
     button.disabled = false;
 
-    button.innerHTML = "🚖 Send Taxi Request";
+    button.innerHTML = "🚖 Request Taxi";
 
 }
 
