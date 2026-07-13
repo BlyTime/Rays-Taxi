@@ -101,7 +101,7 @@ function sendWhatsApp() {
     const requestRef = push(ref(database, "requests"));
 
     set(requestRef, {
-        test: "Hello Firebase"
+        test: "Hello world Firebase"
     })
     .then(() => {
 
