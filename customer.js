@@ -96,60 +96,25 @@ function success(position) {
 
 function sendWhatsApp() {
 
-    const passenger = document.getElementById("customerName").value.trim() || "Not Provided";
+    alert("Button pressed");
 
+    const requestRef = push(ref(database, "requests"));
 
-    const mapsLink = `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
+    set(requestRef, {
+        test: "Hello Firebase"
+    })
+    .then(() => {
 
-    let warning = "";
+        alert("Saved!");
 
-    if (accuracy > 20) {
+    })
+    .catch((e) => {
 
-        warning = `
+        alert(e.message);
 
-GPS signal is weak.
+        console.error(e);
 
-Please reply with a nearby landmark photo to help your driver locate you faster.`;
-
-    }
-
-    const message = encodeURIComponent(
-
-`Ray's Taxi Pickup Request
-
-Passenger's Name:
-${passenger}
-
-Google Maps:
-${mapsLink}
-
-GPS Signal:
-${gpsStatus}
-
-GPS Accuracy:
-${accuracy} meters
-
-${warning}`
-
-    );
-const requestRef = push(ref(database, "requests"));
-
-set(requestRef, {
-
-    passenger: passenger,
-
-    latitude: latitude,
-
-    longitude: longitude,
-
-    accuracy: accuracy,
-
-    status: "Waiting",
-
-    created: Date.now()
-
-});
-    window.location.href = `https://wa.me/${phone}?text=${message}`;
+    });
 
 }
 
