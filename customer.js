@@ -1,3 +1,4 @@
+import { database, ref, push, set } from "./firebase.js";
 
 const phone = "5927563720";
 
@@ -131,7 +132,23 @@ ${accuracy} meters
 ${warning}`
 
     );
+const requestRef = push(ref(database, "requests"));
 
+set(requestRef, {
+
+    passenger: passenger,
+
+    latitude: latitude,
+
+    longitude: longitude,
+
+    accuracy: accuracy,
+
+    status: "Waiting",
+
+    created: Date.now()
+
+});
     window.location.href = `https://wa.me/${phone}?text=${message}`;
 
 }
