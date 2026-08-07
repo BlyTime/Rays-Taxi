@@ -1,26 +1,67 @@
-
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
 
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <title>Ray's Taxi Driver</title>
 
 <link rel="stylesheet" href="style.css">
 
+<style>
+
+body{
+    background:#101820;
+    color:white;
+}
+
+#requests{
+
+    max-width:900px;
+    margin:auto;
+    padding:20px;
+
+}
+
+.request{
+
+    background:#1d2939;
+
+    margin-bottom:20px;
+
+    padding:20px;
+
+    border-radius:12px;
+
+}
+
+.request h2{
+
+    margin-top:0;
+
+}
+
+.accept{
+
+    margin-top:15px;
+
+    background:#00b050;
+
+}
+
+</style>
+
 </head>
 
 <body>
 
-<div class="card">
+<div id="requests">
 
-<h1>🚖 Ray's Taxi Driver</h1>
+<h1>🚖 Ray's Taxi Driver Dashboard</h1>
 
-<p>Waiting for taxi requests...</p>
-
-<div id="requests"></div>
+<p>Waiting for requests...</p>
 
 </div>
 
