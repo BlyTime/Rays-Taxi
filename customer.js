@@ -101,6 +101,7 @@ function sendWhatsApp() {
 
     const passenger =
         document.getElementById("customerName").value.trim() || "Not Provided";
+    
 
     const requestRef = push(ref(database, "requests"));
 
@@ -125,11 +126,17 @@ function sendWhatsApp() {
     })
 
     .then(() => {
+        
+      status.style.color = "#00ff88";
+    status.innerHTML = "✅ Taxi request sent! Opening WhatsApp...";
 
-        alert("Saved to Firebase!");
+    setTimeout(() => {
 
-        console.log("Saved!");
+        window.location.href = `https://wa.me/${phone}?text=${message}`;
 
+    }, 800);
+        
+    
     })
 
     .catch((error) => {
