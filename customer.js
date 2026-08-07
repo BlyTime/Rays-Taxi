@@ -1,5 +1,6 @@
 import { database, ref, push, set } from "./firebase.js";
-
+console.log("Customer.js Loaded");
+console.log(database);
 const phone = "5927563720";
 
 const button = document.getElementById("sendButton");
@@ -98,42 +99,46 @@ function sendWhatsApp() {
 
     alert("Button pressed");
 
+    const passenger =
+        document.getElementById("customerName").value.trim() || "Not Provided";
+
     const requestRef = push(ref(database, "requests"));
 
-set(requestRef, {
+    set(requestRef, {
 
-    passenger: passenger,
+        passenger: passenger,
 
-    latitude: latitude,
+        latitude: latitude,
 
-    longitude: longitude,
+        longitude: longitude,
 
-    accuracy: accuracy,
+        accuracy: accuracy,
 
-    gpsStatus: gpsStatus,
+        gpsStatus: gpsStatus,
 
-    status: "Waiting",
+        status: "Waiting",
 
-    created: new Date().toISOString(),
+        created: new Date().toISOString(),
 
-    version: "0.2.0"
+        version: "0.2.0"
 
-})
-.then(() => {
+    })
 
-    console.log("Taxi request saved.");
+    .then(() => {
 
-    // We can leave WhatsApp here for now
-    window.location.href = `https://wa.me/${phone}?text=${message}`;
+        alert("Saved to Firebase!");
 
-})
-.catch((error) => {
+        console.log("Saved!");
 
-    console.error("Firebase Error:", error);
+    })
 
-    alert(error.message);
+    .catch((error) => {
 
-});
+        alert(error.message);
+
+        console.error(error);
+
+    });
 
 }
 
