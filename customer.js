@@ -100,21 +100,40 @@ function sendWhatsApp() {
 
     const requestRef = push(ref(database, "requests"));
 
-    set(requestRef, {
-        test: "Hello world Firebase"
-    })
-    .then(() => {
+set(requestRef, {
 
-        alert("Saved!");
+    passenger: passenger,
 
-    })
-    .catch((e) => {
+    latitude: latitude,
 
-        alert(e.message);
+    longitude: longitude,
 
-        console.error(e);
+    accuracy: accuracy,
 
-    });
+    gpsStatus: gpsStatus,
+
+    status: "Waiting",
+
+    created: new Date().toISOString(),
+
+    version: "0.2.0"
+
+})
+.then(() => {
+
+    console.log("Taxi request saved.");
+
+    // We can leave WhatsApp here for now
+    window.location.href = `https://wa.me/${phone}?text=${message}`;
+
+})
+.catch((error) => {
+
+    console.error("Firebase Error:", error);
+
+    alert(error.message);
+
+});
 
 }
 
