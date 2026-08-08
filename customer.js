@@ -94,23 +94,42 @@ function success(position) {
 
 function sendRequest() {
 
-    const passenger =
-        document.getElementById("customerName").value.trim()
-        || "Not Provided";
+   let passenger =
+    document.getElementById("customerName").value.trim();
 
-    const countryCode =
-        document.getElementById("countryCode").value;
+const countryCode =
+    document.getElementById("countryCode").value;
 
-    const phoneNumber =
-        document.getElementById("phoneNumber").value.trim();
+let phoneNumber =
+    document.getElementById("phoneNumber").value.trim();
 
-    if (phoneNumber === "") {
 
-        alert("Please enter your phone number.");
+// Clean the passenger name
 
-        return;
+passenger = passenger.replace(/[^a-zA-ZÀ-ÿ\s'-]/g, "");
 
-    }
+
+// Clean the phone number
+
+phoneNumber = phoneNumber.replace(/\D/g, "");
+
+
+if (passenger === "") {
+
+    alert("Please enter the passenger's name.");
+
+    return;
+
+}
+
+
+if (phoneNumber === "") {
+
+    alert("Please enter your phone number.");
+
+    return;
+
+}
 
     const fullPhoneNumber =
         countryCode + phoneNumber;
