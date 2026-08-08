@@ -25,30 +25,34 @@
     </p>
 
     <input
-        id="customerName"
-        type="text"
-        placeholder="Passenger's Name"
-        autocomplete="name"
+    id="customerName"
+    type="text"
+    placeholder="Passenger's Name"
+    autocomplete="name"
+    maxlength="60"
+>
+
+<div class="phone-row">
+
+    <select id="countryCode">
+
+        <option value="+592" data-country="GY">
+            🇬🇾 GY +592
+        </option>
+
+    </select>
+
+    <input
+        id="phoneNumber"
+        type="tel"
+        inputmode="numeric"
+        pattern="[0-9]*"
+        placeholder="Phone Number"
+        autocomplete="tel"
+        maxlength="15"
     >
 
-    <div class="phone-row">
-
-        <select id="countryCode">
-
-            <option value="+592" data-country="GY">
-                🇬🇾 GY +592
-            </option>
-
-        </select>
-
-        <input
-            id="phoneNumber"
-            type="tel"
-            placeholder="Phone Number"
-            autocomplete="tel"
-        >
-
-    </div>
+</div>
 
     <button id="sendButton" disabled>
 
