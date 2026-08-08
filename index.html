@@ -16,34 +16,57 @@
 
 <div class="card">
 
-<div class="logo">🚕</div>
+    <div class="logo">🚕</div>
 
-<h1>Ray's Taxi</h1>
+    <h1>Ray's Taxi</h1>
 
-<p><b>Your driver is locating your pickup position.</b></p>
+    <p>
+        <b>Your driver is locating your pickup position.</b>
+    </p>
 
-<input
-id="customerName"
-type="text"
-placeholder="Passenger's Name">
+    <input
+        id="customerName"
+        type="text"
+        placeholder="Passenger's Name"
+        autocomplete="name"
+    >
 
-<button id="sendButton" disabled>
+    <div class="phone-row">
 
-Locating...
+        <select id="countryCode">
 
-</button>
+            <option value="+592" data-country="GY">
+                🇬🇾 GY +592
+            </option>
 
-<div id="status">
+        </select>
 
-Requesting GPS permission...
+        <input
+            id="phoneNumber"
+            type="tel"
+            placeholder="Phone Number"
+            autocomplete="tel"
+        >
 
-</div>
+    </div>
 
-<div class="small">
+    <button id="sendButton" disabled>
 
-Please allow location access when prompted.
+        Locating...
 
-</div>
+    </button>
+
+    <div id="status">
+
+        Requesting GPS permission...
+
+    </div>
+
+    <div class="small">
+
+        Please allow location access when prompted.
+
+    </div>
 
 </div>
 
