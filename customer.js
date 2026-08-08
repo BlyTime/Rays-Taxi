@@ -1,7 +1,4 @@
 import { database, ref, push, set } from "./firebase.js";
-console.log("Customer.js Loaded");
-console.log(database);
-const phone = "5927563720";
 
 const button = document.getElementById("sendButton");
 const status = document.getElementById("status");
@@ -95,19 +92,39 @@ function success(position) {
 
 }
 
-function sendWhatsApp() {
-
-    alert("Button pressed");
+function sendRequest() {
 
     const passenger =
-        document.getElementById("customerName").value.trim() || "Not Provided";
-    
+        document.getElementById("customerName").value.trim()
+        || "Not Provided";
 
-    const requestRef = push(ref(database, "requests"));
+    const countryCode =
+        document.getElementById("countryCode").value;
+
+    const phoneNumber =
+        document.getElementById("phoneNumber").value.trim();
+
+    if (phoneNumber === "") {
+
+        alert("Please enter your phone number.");
+
+        return;
+
+    }
+
+    const fullPhoneNumber =
+        countryCode + phoneNumber;
+
+    const requestRef =
+        push(ref(database, "requests"));
 
     set(requestRef, {
 
         passenger: passenger,
+
+        phone: fullPhoneNumber,
+
+        countryCode: countryCode,
 
         latitude: latitude,
 
@@ -121,29 +138,40 @@ function sendWhatsApp() {
 
         created: new Date().toISOString(),
 
-        version: "0.2.0"
+        version: "0.3.0"
 
     })
 
     .then(() => {
-        
-      status.style.color = "#00ff88";
-    status.innerHTML = "✅ Taxi request sent! Opening WhatsApp...";
 
-    setTimeout(() => {
+        status.style.color = "#00ff88";
 
-        window.location.href = `https://wa.me/${phone}?text=${message}`;
+        status.innerHTML =
 
-    }, 800);
-        
-    
+        `<b>✅ Taxi request sent!</b>
+
+        <br><br>
+
+        Your driver will contact you shortly.`;
+
+        button.disabled = true;
+
+        button.innerHTML = "Request Sent";
+
+        console.log("Taxi request saved.");
+
     })
 
     .catch((error) => {
 
-        alert(error.message);
+        console.error("Firebase Error:", error);
 
-        console.error(error);
+        status.style.color = "#ff4444";
+
+        status.innerHTML =
+            "❌ Unable to send taxi request.";
+
+        alert(error.message);
 
     });
 
@@ -180,4 +208,4 @@ function error(err) {
 
 }
 
-button.addEventListener("click", sendWhatsApp);
+button.addEventListener("click", sendRequest);
