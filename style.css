@@ -55,19 +55,42 @@ line-height:1.5;
 
 input{
 
-width:100%;
+    width:100%;
+    padding:15px;
+    font-size:17px;
+    border:none;
+    border-radius:10px;
+    box-sizing:border-box;
+    margin-top:20px;
 
-padding:15px;
+}
 
-font-size:17px;
+.phone-row{
 
-border:none;
+    display:flex;
+    width:100%;
+    margin-top:20px;
+    gap:8px;
 
-border-radius:10px;
+}
 
-box-sizing:border-box;
+.phone-row select{
 
-margin-top:20px;
+    width:42%;
+    padding:15px 8px;
+    font-size:15px;
+    border:none;
+    border-radius:10px;
+    box-sizing:border-box;
+    background:white;
+    color:black;
+
+}
+
+.phone-row input{
+
+    width:58%;
+    margin-top:0;
 
 }
 
