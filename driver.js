@@ -52,7 +52,7 @@ function playNewRequestSound() {
         oscillator.type = "sine";
         oscillator.frequency.value = index === 0 ? 880 : 1175;
         gain.gain.setValueAtTime(0.0001, audioContext.currentTime + delay);
-        gain.gain.exponentialRampToValueAtTime(0.16, audioContext.currentTime + delay + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.5, audioContext.currentTime + delay + 0.02);
         gain.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + delay + 0.16);
         oscillator.connect(gain).connect(audioContext.destination);
         oscillator.start(audioContext.currentTime + delay);
