@@ -20,9 +20,11 @@
 
     <h1>Ray's Taxi</h1>
 
-    <p>
-        <b>Your driver is locating your pickup position.</b>
-    </p>
+    <div id="requestForm">
+
+        <p>
+            <b>Your driver is locating your pickup position.</b>
+        </p>
 
     <input
     id="customerName"
@@ -66,11 +68,20 @@
 
     </div>
 
-    <div class="small">
+        <div class="small">
 
-        Please allow location access when prompted.
+            Please allow location access when prompted.
+
+        </div>
 
     </div>
+
+    <section id="rideStatus" class="ride-status" hidden aria-live="polite">
+        <div class="ride-icon">🚕</div>
+        <h2 id="rideStatusTitle">Request sent</h2>
+        <p id="rideStatusMessage">We are looking for your driver.</p>
+        <p class="ride-note">Keep this page open for live ride updates.</p>
+    </section>
 
 </div>
 
