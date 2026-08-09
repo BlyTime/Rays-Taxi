@@ -24,17 +24,22 @@ function phoneNumber(request) {
     return phone;
 }
 
-function waitingText(created) {
+function waitingText(created, endedAt = "") {
     const createdAt = new Date(created).getTime();
     if (Number.isNaN(createdAt)) return "Waiting time unavailable";
 
-    const minutes = Math.max(0, Math.floor((Date.now() - createdAt) / 60000));
-    return minutes < 1 ? "Waiting less than 1 min" : `Waiting ${minutes} min`;
+    const savedEndTime = endedAt ? new Date(endedAt).getTime() : NaN;
+    const endTime = Number.isNaN(savedEndTime) ? Date.now() : savedEndTime;
+    const elapsedSeconds = Math.max(0, Math.floor((endTime - createdAt) / 1000));
+    const minutes = Math.floor(elapsedSeconds / 60);
+    const seconds = String(elapsedSeconds % 60).padStart(2, "0");
+
+    return endedAt ? `Waited ${minutes}m ${seconds}s` : `Waiting ${minutes}m ${seconds}s`;
 }
 
 function refreshWaitingTimes() {
     document.querySelectorAll("[data-created]").forEach((element) => {
-        element.textContent = waitingText(element.dataset.created);
+        element.textContent = waitingText(element.dataset.created, element.dataset.ended);
     });
 }
 
@@ -103,6 +108,9 @@ function renderRequests(data, newRequestIds = new Set()) {
             const currentStatus = String(request.status || "Waiting");
             const step = nextRideStep(currentStatus);
             const isNew = newRequestIds.has(key);
+            const waitingEndedAt = currentStatus.toLowerCase() === "picked up" || currentStatus.toLowerCase() === "completed"
+                ? request.pickedUpAt || request.statusUpdatedAt || ""
+                : "";
 
             requestsDiv.innerHTML += `
                 <article class="request ${isNew ? "new-request" : ""}">
@@ -112,7 +120,7 @@ function renderRequests(data, newRequestIds = new Set()) {
                         <span class="status status-${status.toLowerCase()}">${status}</span>
                     </div>
                     <p class="phone">📞 ${phone ? `+${phone}` : "Phone unavailable"}</p>
-                    <p class="waiting">⏱️ <span data-created="${escapeHtml(request.created || "")}">${waitingText(request.created)}</span></p>
+                    <p class="waiting">⏱️ <span data-created="${escapeHtml(request.created || "")}" data-ended="${escapeHtml(waitingEndedAt)}">${waitingText(request.created, waitingEndedAt)}</span></p>
                     <p class="gps">📡 GPS: <strong>${gpsStatus}</strong> · ${accuracy}</p>
                     <div class="request-actions">
                         <a class="action ${hasLocation ? "" : "is-disabled"}" href="${mapUrl}" target="_blank" rel="noopener" aria-label="Open map" ${hasLocation ? "" : "aria-disabled=\"true\""}>🧭</a>
@@ -184,4 +192,4 @@ requestsDiv.addEventListener("click", async (event) => {
     }
 });
 
-setInterval(refreshWaitingTimes, 30000);
+setInterval(refreshWaitingTimes, 1000);
