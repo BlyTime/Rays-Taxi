@@ -60,6 +60,11 @@ function nextRideStep(status) {
     return steps[status.toLowerCase()] || null;
 }
 
+function requestIsExpired(request) {
+    return String(request.status || "").toLowerCase() === "waiting" &&
+        request.expiresAt && new Date(request.expiresAt).getTime() <= Date.now();
+}
+
 function playNewRequestSound() {
     if (!alertsEnabled || !audioContext) return;
 
@@ -79,12 +84,7 @@ function playNewRequestSound() {
 
 function renderRequests(data, newRequestIds = new Set()) {
     requestsDiv.innerHTML = `
-        <div class="dashboard-heading">
-            <h1>🚖 Ray's Taxi Driver Dashboard</h1>
-            <button id="alertToggle" class="alert-toggle" type="button" aria-pressed="${alertsEnabled}">
-                ${alertsEnabled ? "🔔 Alerts on" : "🔕 Enable alerts"}
-            </button>
-        </div>`;
+        <div class="dashboard-heading"><h1>🚖 Ray's Taxi Driver Dashboard</h1></div>`;
 
     if (!data) {
         requestsDiv.innerHTML += "<p>No requests yet.</p>";
@@ -106,7 +106,8 @@ function renderRequests(data, newRequestIds = new Set()) {
                 ? `${Math.round(Number(request.accuracy))} m`
                 : "Unavailable";
             const currentStatus = String(request.status || "Waiting");
-            const step = nextRideStep(currentStatus);
+            const expired = requestIsExpired(request);
+            const step = expired ? null : nextRideStep(currentStatus);
             const isNew = newRequestIds.has(key);
             const waitingEndedAt = currentStatus.toLowerCase() === "picked up" || currentStatus.toLowerCase() === "completed"
                 ? request.pickedUpAt || request.statusUpdatedAt || ""
@@ -117,7 +118,7 @@ function renderRequests(data, newRequestIds = new Set()) {
                     ${isNew ? "<span class=\"new-request-label\">New request</span>" : ""}
                     <div class="request-heading">
                         <h2>👤 ${passenger}</h2>
-                        <span class="status status-${status.toLowerCase()}">${status}</span>
+                        <span class="status status-${expired ? "timed-out" : status.toLowerCase()}">${expired ? "Timed out" : status}</span>
                     </div>
                     <p class="phone">📞 ${phone ? `+${phone}` : "Phone unavailable"}</p>
                     <p class="waiting">⏱️ <span data-created="${escapeHtml(request.created || "")}" data-ended="${escapeHtml(waitingEndedAt)}">${waitingText(request.created, waitingEndedAt)}</span></p>
@@ -128,7 +129,7 @@ function renderRequests(data, newRequestIds = new Set()) {
                         <a class="action ${phone ? "" : "is-disabled"}" href="${phone ? `tel:+${phone}` : "#"}" aria-label="Call passenger" ${phone ? "" : "aria-disabled=\"true\""}>📞</a>
                     </div>
                     <button class="ride-step" type="button" data-request-id="${escapeHtml(key)}" data-next-status="${step ? step.nextStatus : ""}" data-timestamp-field="${step ? step.timestamp : ""}" ${step ? "" : "disabled"}>
-                        ${step ? step.label : "✓ Ride completed"}
+                        ${step ? step.label : expired ? "⌛ Request timed out" : currentStatus.toLowerCase() === "cancelled" ? "✕ Request cancelled" : "✓ Ride completed"}
                     </button>
                 </article>`;
         });
@@ -150,26 +151,10 @@ onValue(requestsRef, (snapshot) => {
 
 requestsDiv.addEventListener("click", async (event) => {
     const disabledLink = event.target.closest("a.is-disabled");
-    const alertToggle = event.target.closest("#alertToggle");
     const button = event.target.closest(".ride-step");
 
     if (disabledLink) {
         event.preventDefault();
-        return;
-    }
-
-    if (alertToggle) {
-        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-        if (!AudioContextClass) {
-            alert("This browser does not support sound alerts.");
-            return;
-        }
-        audioContext ??= new AudioContextClass();
-        await audioContext.resume();
-        alertsEnabled = !alertsEnabled;
-        alertToggle.setAttribute("aria-pressed", alertsEnabled);
-        alertToggle.textContent = alertsEnabled ? "🔔 Alerts on" : "🔕 Enable alerts";
-        if (alertsEnabled) playNewRequestSound();
         return;
     }
 
@@ -191,5 +176,17 @@ requestsDiv.addEventListener("click", async (event) => {
         alert("Could not update this ride. Please try again.");
     }
 });
+
+function enableDriverAlerts() {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return;
+
+    audioContext ??= new AudioContextClass();
+    audioContext.resume();
+    alertsEnabled = true;
+}
+
+document.addEventListener("pointerdown", enableDriverAlerts, { once: true });
+document.addEventListener("keydown", enableDriverAlerts, { once: true });
 
 setInterval(refreshWaitingTimes, 1000);

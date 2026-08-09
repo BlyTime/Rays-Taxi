@@ -1,4 +1,4 @@
-import { database, ref, push, set, onValue } from "./firebase.js";
+import { database, ref, push, set, update, onValue } from "./firebase.js";
 
 const button = document.getElementById("sendButton");
 const status = document.getElementById("status");
@@ -6,8 +6,10 @@ const requestForm = document.getElementById("requestForm");
 const rideStatus = document.getElementById("rideStatus");
 const rideStatusTitle = document.getElementById("rideStatusTitle");
 const rideStatusMessage = document.getElementById("rideStatusMessage");
+const cancelRequestButton = document.getElementById("cancelRequestButton");
 const finishRideButton = document.getElementById("finishRideButton");
 const savedRequestKey = "raysTaxiRequestId";
+const REQUEST_TIMEOUT_MINUTES = 15;
 
 const nameInput = document.getElementById("customerName");
 const phoneInput = document.getElementById("phoneNumber");
@@ -25,6 +27,9 @@ let longitude = "";
 let accuracy = 0;
 let gpsStatus = "";
 let stopWatchingRide = null;
+let requestTimeoutId = null;
+let customerAudioContext = null;
+let lastRideState = "";
 
 function showRideStatus(request) {
     requestForm.hidden = true;
@@ -38,13 +43,18 @@ function showRideStatus(request) {
         arrived: ["Your driver has arrived", "Your taxi is waiting at your pickup location."],
         "picked up": ["You are on your way", "Enjoy your ride!"],
         completed: ["Ride completed", "Thanks for riding with Ray's Taxi."],
-        cancelled: ["Request cancelled", "Please contact Ray's Taxi if you still need a ride."]
+        cancelled: ["Request cancelled", "Your driver has not been sent to you."],
+        "timed out": ["No driver available", "No driver accepted in time. Please try again later."]
     };
     const [title, message] = messages[state] || ["Ride update", `Status: ${request.status}`];
 
     rideStatusTitle.textContent = title;
     rideStatusMessage.textContent = message;
-    finishRideButton.hidden = state !== "completed" && state !== "cancelled";
+    cancelRequestButton.hidden = state !== "waiting";
+    finishRideButton.hidden = !["completed", "cancelled", "timed out"].includes(state);
+    finishRideButton.textContent = state === "completed"
+        ? "✅ Done — Request another taxi"
+        : "🚕 Try requesting again";
 }
 
 function watchRide(requestId) {
@@ -59,12 +69,83 @@ function watchRide(requestId) {
         }
 
         showRideStatus(request);
+        scheduleRequestTimeout(request);
+
+        const state = String(request.status || "Waiting").toLowerCase();
+        if (state === "arrived" && lastRideState !== "arrived") playArrivalSound();
+        lastRideState = state;
     });
+}
+
+function enableCustomerAlerts() {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return;
+
+    customerAudioContext ??= new AudioContextClass();
+    customerAudioContext.resume();
+}
+
+function playArrivalSound() {
+    if (!customerAudioContext || customerAudioContext.state !== "running") return;
+
+    [0, 0.2, 0.4].forEach((delay, index) => {
+        const oscillator = customerAudioContext.createOscillator();
+        const gain = customerAudioContext.createGain();
+        oscillator.type = "triangle";
+        oscillator.frequency.value = index === 2 ? 1047 : 784;
+        gain.gain.setValueAtTime(0.0001, customerAudioContext.currentTime + delay);
+        gain.gain.exponentialRampToValueAtTime(0.35, customerAudioContext.currentTime + delay + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, customerAudioContext.currentTime + delay + 0.16);
+        oscillator.connect(gain).connect(customerAudioContext.destination);
+        oscillator.start(customerAudioContext.currentTime + delay);
+        oscillator.stop(customerAudioContext.currentTime + delay + 0.17);
+    });
+}
+
+function scheduleRequestTimeout(request) {
+    clearTimeout(requestTimeoutId);
+    if (String(request.status || "Waiting").toLowerCase() !== "waiting") return;
+
+    const expiry = new Date(request.expiresAt || new Date(new Date(request.created).getTime() + REQUEST_TIMEOUT_MINUTES * 60000)).getTime();
+    const remaining = expiry - Date.now();
+    requestTimeoutId = setTimeout(timeoutRequest, Math.max(0, remaining));
+}
+
+async function timeoutRequest() {
+    const requestId = localStorage.getItem(savedRequestKey);
+    if (!requestId) return;
+
+    try {
+        await update(ref(database, `requests/${requestId}`), {
+            status: "Timed out",
+            timedOutAt: new Date().toISOString()
+        });
+    } catch (error) {
+        console.error("Could not time out request:", error);
+    }
+}
+
+async function cancelRequest() {
+    const requestId = localStorage.getItem(savedRequestKey);
+    if (!requestId || !confirm("Cancel this taxi request?")) return;
+
+    cancelRequestButton.disabled = true;
+    try {
+        await update(ref(database, `requests/${requestId}`), {
+            status: "Cancelled",
+            cancelledAt: new Date().toISOString()
+        });
+    } catch (error) {
+        console.error("Could not cancel request:", error);
+        cancelRequestButton.disabled = false;
+        alert("Could not cancel the request. Please try again.");
+    }
 }
 
 function startNewRequest() {
     stopWatchingRide?.();
     stopWatchingRide = null;
+    clearTimeout(requestTimeoutId);
     localStorage.removeItem(savedRequestKey);
     requestForm.hidden = false;
     rideStatus.hidden = true;
@@ -74,6 +155,7 @@ function startNewRequest() {
     longitude = "";
     accuracy = 0;
     gpsStatus = "";
+    lastRideState = "";
     button.disabled = true;
     button.textContent = "Locating...";
     getLocation();
@@ -137,8 +219,10 @@ async function sendRequest() {
 
     button.disabled = true;
     button.textContent = "Sending...";
+    enableCustomerAlerts();
 
     const requestRef = push(ref(database, "requests"));
+    const createdAt = new Date();
 
     try {
         await set(requestRef, {
@@ -150,8 +234,9 @@ async function sendRequest() {
             accuracy,
             gpsStatus,
             status: "Waiting",
-            created: new Date().toISOString(),
-            version: "0.5.0"
+            created: createdAt.toISOString(),
+            expiresAt: new Date(createdAt.getTime() + REQUEST_TIMEOUT_MINUTES * 60000).toISOString(),
+            version: "0.6.0"
         });
 
         localStorage.setItem(savedRequestKey, requestRef.key);
@@ -186,6 +271,7 @@ function error(err) {
 }
 
 button.addEventListener("click", sendRequest);
+cancelRequestButton.addEventListener("click", cancelRequest);
 finishRideButton.addEventListener("click", startNewRequest);
 
 const savedRequestId = localStorage.getItem(savedRequestKey);

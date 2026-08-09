@@ -182,6 +182,13 @@ font-size:13px;
 color:#888;
 }
 
+.cancel-request{
+margin-top:22px;
+background:#9f2c2c;
+color:white;
+font-size:16px;
+}
+
 .finish-ride{
 margin-top:22px;
 background:#00b050;
@@ -284,6 +291,7 @@ background:#56606e;
 .status-arrived{ background:#6a3fa0; color:#f1e6ff; }
 .status-picked-up{ background:#00796b; color:#e0fffb; }
 .status-completed{ background:#4c5a64; color:#eef2f4; }
+.status-timed-out{ background:#63322a; color:#ffe9e5; }
 
 .request-actions{
 display:flex;
