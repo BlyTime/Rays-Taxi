@@ -208,21 +208,22 @@ background:#56606e;
 .status-accepted{ background:#087c40; color:#e0ffec; }
 
 .request-actions{
-display:grid;
-grid-template-columns:repeat(3, 1fr);
+display:flex;
 gap:10px;
 margin-top:18px;
 }
 
 .action{
-display:block;
-padding:12px 8px;
+display:inline-flex;
+align-items:center;
+justify-content:center;
+width:44px;
+height:44px;
+padding:0;
 border-radius:10px;
 background:#304259;
 color:white;
-font-weight:bold;
-font-size:14px;
-text-align:center;
+font-size:20px;
 text-decoration:none;
 }
 
