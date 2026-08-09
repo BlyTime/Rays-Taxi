@@ -3,6 +3,17 @@ import { database, ref, push, set } from "./firebase.js";
 const button = document.getElementById("sendButton");
 const status = document.getElementById("status");
 
+const nameInput = document.getElementById("customerName");
+
+nameInput.addEventListener("input", function () {
+
+    this.value = this.value.replace(
+        /[^a-zA-ZÀ-ÿ\s'-]/g,
+        ""
+    );
+
+});
+
 const phoneInput = document.getElementById("phoneNumber");
 
 phoneInput.addEventListener("input", function () {
