@@ -13,20 +13,6 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     attribution: "© OpenStreetMap contributors"
 }).addTo(map);
 
-const taxiIcon = L.divIcon({
-    className: "taxi-map-marker",
-    html: "🚕",
-    iconSize: [36, 36],
-    iconAnchor: [18, 18]
-});
-
-const pickupIcon = L.divIcon({
-    className: "pickup-map-marker",
-    html: "📍",
-    iconSize: [32, 32],
-    iconAnchor: [16, 32]
-});
-
 let driverMarker;
 let driverPosition;
 let hasSetInitialView = false;
@@ -42,9 +28,15 @@ function updateDriverPosition(position) {
     driverPosition = [latitude, longitude];
 
     if (!driverMarker) {
-        driverMarker = L.marker(driverPosition, { icon: taxiIcon, zIndexOffset: 1000 })
+        driverMarker = L.circleMarker(driverPosition, {
+            radius: 13,
+            color: "#ffffff",
+            weight: 3,
+            fillColor: "#00b050",
+            fillOpacity: 1
+        })
             .addTo(map)
-            .bindPopup("You are here");
+            .bindPopup("🚕 You are here");
     } else {
         driverMarker.setLatLng(driverPosition);
     }
@@ -63,7 +55,7 @@ function updateDriverPosition(position) {
     });
 
     if (!hasSetInitialView) {
-        map.setView(driverPosition, 15);
+        map.setView(driverPosition, 16);
         hasSetInitialView = true;
     }
 }
@@ -108,7 +100,13 @@ function renderPickups(data) {
         let marker = pickupMarkers.get(id);
 
         if (!marker) {
-            marker = L.marker(point, { icon: pickupIcon }).addTo(map);
+            marker = L.circleMarker(point, {
+                radius: 10,
+                color: "#ffffff",
+                weight: 2,
+                fillColor: "#f26b38",
+                fillOpacity: 1
+            }).addTo(map);
             pickupMarkers.set(id, marker);
         } else {
             marker.setLatLng(point);
@@ -147,3 +145,7 @@ activePickups.addEventListener("click", (event) => {
         marker.openPopup();
     }
 });
+
+// Mobile browsers can calculate the map size too early during page load.
+setTimeout(() => map.invalidateSize(), 300);
+window.addEventListener("resize", () => map.invalidateSize());
