@@ -74,9 +74,9 @@ function renderRequests(data) {
                     <p class="waiting">⏱️ <span data-created="${escapeHtml(request.created || "")}">${waitingText(request.created)}</span></p>
                     <p class="gps">📡 GPS: <strong>${gpsStatus}</strong> · ${accuracy}</p>
                     <div class="request-actions">
-                        <a class="action ${hasLocation ? "" : "is-disabled"}" href="${mapUrl}" target="_blank" rel="noopener" ${hasLocation ? "" : "aria-disabled=\"true\""}>🗺️ Map</a>
-                        <a class="action ${phone ? "" : "is-disabled"}" href="${phone ? `https://wa.me/${phone}` : "#"}" target="_blank" rel="noopener" ${phone ? "" : "aria-disabled=\"true\""}>💬 WhatsApp</a>
-                        <a class="action ${phone ? "" : "is-disabled"}" href="${phone ? `tel:+${phone}` : "#"}" ${phone ? "" : "aria-disabled=\"true\""}>📞 Call</a>
+                        <a class="action ${hasLocation ? "" : "is-disabled"}" href="${mapUrl}" target="_blank" rel="noopener" ${hasLocation ? "" : "aria-disabled=\"true\""}>🧭</a>
+                        <a class="action ${phone ? "" : "is-disabled"}" href="${phone ? `https://wa.me/${phone}` : "#"}" target="_blank" rel="noopener" ${phone ? "" : "aria-disabled=\"true\""}>💬</a>
+                        <a class="action ${phone ? "" : "is-disabled"}" href="${phone ? `tel:+${phone}` : "#"}" ${phone ? "" : "aria-disabled=\"true\""}>📞</a>
                     </div>
                     <button class="accept" type="button" data-request-id="${escapeHtml(key)}" ${accepted ? "disabled" : ""}>
                         ${accepted ? "✓ Accepted" : "🚕 Accept"}
