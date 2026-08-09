@@ -6,6 +6,7 @@ const requestForm = document.getElementById("requestForm");
 const rideStatus = document.getElementById("rideStatus");
 const rideStatusTitle = document.getElementById("rideStatusTitle");
 const rideStatusMessage = document.getElementById("rideStatusMessage");
+const finishRideButton = document.getElementById("finishRideButton");
 const savedRequestKey = "raysTaxiRequestId";
 
 const nameInput = document.getElementById("customerName");
@@ -23,6 +24,7 @@ let latitude = "";
 let longitude = "";
 let accuracy = 0;
 let gpsStatus = "";
+let stopWatchingRide = null;
 
 function showRideStatus(request) {
     requestForm.hidden = true;
@@ -42,19 +44,39 @@ function showRideStatus(request) {
 
     rideStatusTitle.textContent = title;
     rideStatusMessage.textContent = message;
+    finishRideButton.hidden = state !== "completed" && state !== "cancelled";
 }
 
 function watchRide(requestId) {
-    onValue(ref(database, `requests/${requestId}`), (snapshot) => {
+    stopWatchingRide?.();
+    stopWatchingRide = onValue(ref(database, `requests/${requestId}`), (snapshot) => {
         const request = snapshot.val();
 
         if (!request) {
             localStorage.removeItem(savedRequestKey);
+            startNewRequest();
             return;
         }
 
         showRideStatus(request);
     });
+}
+
+function startNewRequest() {
+    stopWatchingRide?.();
+    stopWatchingRide = null;
+    localStorage.removeItem(savedRequestKey);
+    requestForm.hidden = false;
+    rideStatus.hidden = true;
+    nameInput.value = "";
+    phoneInput.value = "";
+    latitude = "";
+    longitude = "";
+    accuracy = 0;
+    gpsStatus = "";
+    button.disabled = true;
+    button.textContent = "Locating...";
+    getLocation();
 }
 
 function getLocation() {
@@ -164,6 +186,7 @@ function error(err) {
 }
 
 button.addEventListener("click", sendRequest);
+finishRideButton.addEventListener("click", startNewRequest);
 
 const savedRequestId = localStorage.getItem(savedRequestKey);
 if (savedRequestId) {
