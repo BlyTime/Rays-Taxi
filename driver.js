@@ -2,6 +2,9 @@ import { database, ref, onValue, update } from "./firebase.js";
 
 const requestsDiv = document.getElementById("requests");
 const requestsRef = ref(database, "requests");
+let knownRequestIds = null;
+let alertsEnabled = false;
+let audioContext;
 
 function escapeHtml(value) {
     const element = document.createElement("div");
@@ -40,8 +43,31 @@ function validLocation(request) {
         Number.isFinite(Number(request.longitude));
 }
 
-function renderRequests(data) {
-    requestsDiv.innerHTML = "<h1>🚖 Ray's Taxi Driver Dashboard</h1>";
+function playNewRequestSound() {
+    if (!alertsEnabled || !audioContext) return;
+
+    [0, 0.22].forEach((delay, index) => {
+        const oscillator = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+        oscillator.type = "sine";
+        oscillator.frequency.value = index === 0 ? 880 : 1175;
+        gain.gain.setValueAtTime(0.0001, audioContext.currentTime + delay);
+        gain.gain.exponentialRampToValueAtTime(0.16, audioContext.currentTime + delay + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + delay + 0.16);
+        oscillator.connect(gain).connect(audioContext.destination);
+        oscillator.start(audioContext.currentTime + delay);
+        oscillator.stop(audioContext.currentTime + delay + 0.17);
+    });
+}
+
+function renderRequests(data, newRequestIds = new Set()) {
+    requestsDiv.innerHTML = `
+        <div class="dashboard-heading">
+            <h1>🚖 Ray's Taxi Driver Dashboard</h1>
+            <button id="alertToggle" class="alert-toggle" type="button" aria-pressed="${alertsEnabled}">
+                ${alertsEnabled ? "🔔 Alerts on" : "🔕 Enable alerts"}
+            </button>
+        </div>`;
 
     if (!data) {
         requestsDiv.innerHTML += "<p>No requests yet.</p>";
@@ -63,9 +89,11 @@ function renderRequests(data) {
                 ? `${Math.round(Number(request.accuracy))} m`
                 : "Unavailable";
             const accepted = String(request.status || "").toLowerCase() === "accepted";
+            const isNew = newRequestIds.has(key);
 
             requestsDiv.innerHTML += `
-                <article class="request">
+                <article class="request ${isNew ? "new-request" : ""}">
+                    ${isNew ? "<span class=\"new-request-label\">New request</span>" : ""}
                     <div class="request-heading">
                         <h2>👤 ${passenger}</h2>
                         <span class="status status-${status.toLowerCase()}">${status}</span>
@@ -74,9 +102,9 @@ function renderRequests(data) {
                     <p class="waiting">⏱️ <span data-created="${escapeHtml(request.created || "")}">${waitingText(request.created)}</span></p>
                     <p class="gps">📡 GPS: <strong>${gpsStatus}</strong> · ${accuracy}</p>
                     <div class="request-actions">
-                        <a class="action ${hasLocation ? "" : "is-disabled"}" href="${mapUrl}" target="_blank" rel="noopener" ${hasLocation ? "" : "aria-disabled=\"true\""}>🧭</a>
-                        <a class="action ${phone ? "" : "is-disabled"}" href="${phone ? `https://wa.me/${phone}` : "#"}" target="_blank" rel="noopener" ${phone ? "" : "aria-disabled=\"true\""}>💬</a>
-                        <a class="action ${phone ? "" : "is-disabled"}" href="${phone ? `tel:+${phone}` : "#"}" ${phone ? "" : "aria-disabled=\"true\""}>📞</a>
+                        <a class="action ${hasLocation ? "" : "is-disabled"}" href="${mapUrl}" target="_blank" rel="noopener" aria-label="Open map" ${hasLocation ? "" : "aria-disabled=\"true\""}>🧭</a>
+                        <a class="action ${phone ? "" : "is-disabled"}" href="${phone ? `https://wa.me/${phone}` : "#"}" target="_blank" rel="noopener" aria-label="Open WhatsApp" ${phone ? "" : "aria-disabled=\"true\""}>💬</a>
+                        <a class="action ${phone ? "" : "is-disabled"}" href="${phone ? `tel:+${phone}` : "#"}" aria-label="Call passenger" ${phone ? "" : "aria-disabled=\"true\""}>📞</a>
                     </div>
                     <button class="accept" type="button" data-request-id="${escapeHtml(key)}" ${accepted ? "disabled" : ""}>
                         ${accepted ? "✓ Accepted" : "🚕 Accept"}
@@ -86,20 +114,45 @@ function renderRequests(data) {
 }
 
 onValue(requestsRef, (snapshot) => {
-    renderRequests(snapshot.val());
+    const data = snapshot.val() || {};
+    const currentRequestIds = new Set(Object.keys(data));
+    const newRequestIds = knownRequestIds
+        ? new Set([...currentRequestIds].filter((id) => !knownRequestIds.has(id)))
+        : new Set();
+
+    knownRequestIds = currentRequestIds;
+    renderRequests(data, newRequestIds);
     refreshWaitingTimes();
+
+    if (newRequestIds.size) playNewRequestSound();
 });
 
 requestsDiv.addEventListener("click", async (event) => {
     const disabledLink = event.target.closest("a.is-disabled");
+    const alertToggle = event.target.closest("#alertToggle");
     const button = event.target.closest(".accept");
 
     if (disabledLink) {
         event.preventDefault();
         return;
     }
-    if (!button || button.disabled) return;
 
+    if (alertToggle) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) {
+            alert("This browser does not support sound alerts.");
+            return;
+        }
+        audioContext ??= new AudioContextClass();
+        await audioContext.resume();
+        alertsEnabled = !alertsEnabled;
+        alertToggle.setAttribute("aria-pressed", alertsEnabled);
+        alertToggle.textContent = alertsEnabled ? "🔔 Alerts on" : "🔕 Enable alerts";
+        if (alertsEnabled) playNewRequestSound();
+        return;
+    }
+
+    if (!button || button.disabled) return;
     button.disabled = true;
     button.textContent = "Accepting...";
 
