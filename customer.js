@@ -3,6 +3,14 @@ import { database, ref, push, set } from "./firebase.js";
 const button = document.getElementById("sendButton");
 const status = document.getElementById("status");
 
+const phoneInput = document.getElementById("phoneNumber");
+
+phoneInput.addEventListener("input", function () {
+
+    this.value = this.value.replace(/\D/g, "");
+
+});
+
 let latitude = "";
 let longitude = "";
 let accuracy = 0;
