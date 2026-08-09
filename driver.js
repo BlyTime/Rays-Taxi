@@ -1,51 +1,119 @@
-import { database, ref, onValue } from "./firebase.js";
+import { database, ref, onValue, update } from "./firebase.js";
 
 const requestsDiv = document.getElementById("requests");
-
 const requestsRef = ref(database, "requests");
 
-onValue(requestsRef, (snapshot) => {
+function escapeHtml(value) {
+    const element = document.createElement("div");
+    element.textContent = value ?? "";
+    return element.innerHTML;
+}
 
-    const data = snapshot.val();
+function phoneNumber(request) {
+    const countryCode = String(request.countryCode || "").replace(/\D/g, "");
+    let phone = String(request.phone || "").replace(/\D/g, "");
 
+    // Existing customer requests already include the country code in `phone`.
+    if (countryCode && phone && !phone.startsWith(countryCode)) {
+        phone = countryCode + phone;
+    }
+
+    return phone;
+}
+
+function waitingText(created) {
+    const createdAt = new Date(created).getTime();
+    if (Number.isNaN(createdAt)) return "Waiting time unavailable";
+
+    const minutes = Math.max(0, Math.floor((Date.now() - createdAt) / 60000));
+    return minutes < 1 ? "Waiting less than 1 min" : `Waiting ${minutes} min`;
+}
+
+function refreshWaitingTimes() {
+    document.querySelectorAll("[data-created]").forEach((element) => {
+        element.textContent = waitingText(element.dataset.created);
+    });
+}
+
+function validLocation(request) {
+    return Number.isFinite(Number(request.latitude)) &&
+        Number.isFinite(Number(request.longitude));
+}
+
+function renderRequests(data) {
     requestsDiv.innerHTML = "<h1>🚖 Ray's Taxi Driver Dashboard</h1>";
 
     if (!data) {
-
         requestsDiv.innerHTML += "<p>No requests yet.</p>";
-
         return;
-
     }
 
-    Object.entries(data).reverse().forEach(([key, request]) => {
+    Object.entries(data)
+        .sort(([, a], [, b]) => new Date(b.created || 0) - new Date(a.created || 0))
+        .forEach(([key, request]) => {
+            const phone = phoneNumber(request);
+            const hasLocation = validLocation(request);
+            const mapUrl = hasLocation
+                ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${request.latitude},${request.longitude}`)}`
+                : "#";
+            const status = escapeHtml(request.status || "Waiting");
+            const passenger = escapeHtml(request.passenger || "Passenger");
+            const gpsStatus = escapeHtml(request.gpsStatus || "Unavailable");
+            const accuracy = Number.isFinite(Number(request.accuracy))
+                ? `${Math.round(Number(request.accuracy))} m`
+                : "Unavailable";
+            const accepted = String(request.status || "").toLowerCase() === "accepted";
 
-        requestsDiv.innerHTML += `
+            requestsDiv.innerHTML += `
+                <article class="request">
+                    <div class="request-heading">
+                        <h2>👤 ${passenger}</h2>
+                        <span class="status status-${status.toLowerCase()}">${status}</span>
+                    </div>
+                    <p class="phone">📞 ${phone ? `+${phone}` : "Phone unavailable"}</p>
+                    <p class="waiting">⏱️ <span data-created="${escapeHtml(request.created || "")}">${waitingText(request.created)}</span></p>
+                    <p class="gps">📡 GPS: <strong>${gpsStatus}</strong> · ${accuracy}</p>
+                    <div class="request-actions">
+                        <a class="action ${hasLocation ? "" : "is-disabled"}" href="${mapUrl}" target="_blank" rel="noopener" ${hasLocation ? "" : "aria-disabled=\"true\""}>🗺️ Map</a>
+                        <a class="action ${phone ? "" : "is-disabled"}" href="${phone ? `https://wa.me/${phone}` : "#"}" target="_blank" rel="noopener" ${phone ? "" : "aria-disabled=\"true\""}>💬 WhatsApp</a>
+                        <a class="action ${phone ? "" : "is-disabled"}" href="${phone ? `tel:+${phone}` : "#"}" ${phone ? "" : "aria-disabled=\"true\""}>📞 Call</a>
+                    </div>
+                    <button class="accept" type="button" data-request-id="${escapeHtml(key)}" ${accepted ? "disabled" : ""}>
+                        ${accepted ? "✓ Accepted" : "🚕 Accept"}
+                    </button>
+                </article>`;
+        });
+}
 
-        <div class="request">
-
-            <h2>${request.passenger}</h2>
-
-            <p><b>Status:</b> ${request.status}</p>
-
-            <p><b>GPS:</b> ${request.gpsStatus}</p>
-
-            <p><b>Accuracy:</b> ${request.accuracy} m</p>
-
-            <p><b>Latitude:</b> ${request.latitude}</p>
-
-            <p><b>Longitude:</b> ${request.longitude}</p>
-
-            <button class="accept">
-
-                Accept
-
-            </button>
-
-        </div>
-
-        `;
-
-    });
-
+onValue(requestsRef, (snapshot) => {
+    renderRequests(snapshot.val());
+    refreshWaitingTimes();
 });
+
+requestsDiv.addEventListener("click", async (event) => {
+    const disabledLink = event.target.closest("a.is-disabled");
+    const button = event.target.closest(".accept");
+
+    if (disabledLink) {
+        event.preventDefault();
+        return;
+    }
+    if (!button || button.disabled) return;
+
+    button.disabled = true;
+    button.textContent = "Accepting...";
+
+    try {
+        await update(ref(database, `requests/${button.dataset.requestId}`), {
+            status: "Accepted",
+            acceptedAt: new Date().toISOString()
+        });
+    } catch (error) {
+        console.error("Could not accept request:", error);
+        button.disabled = false;
+        button.textContent = "🚕 Accept";
+        alert("Could not accept this request. Please try again.");
+    }
+});
+
+setInterval(refreshWaitingTimes, 30000);

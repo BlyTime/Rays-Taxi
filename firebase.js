@@ -8,6 +8,7 @@ import {
     ref,
     push,
     set,
+    update,
     onValue
 } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-database.js";
 
@@ -42,6 +43,8 @@ export {
     push,
 
     set,
+
+    update,
 
     onValue
 
