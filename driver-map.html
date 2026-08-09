@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ray's Taxi Live Map</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIINfQ2qmty0e0L2Nf5v0Q7nYd1iQr3fFjE=" crossorigin="">
+</head>
+<body class="driver-page map-page">
+    <main class="map-layout">
+        <header class="map-header">
+            <div>
+                <a class="back-link" href="driver.html">← Dashboard</a>
+                <h1>🗺️ Live driver map</h1>
+                <p id="mapStatus">📡 Finding your live location…</p>
+            </div>
+            <button id="centerDriver" class="center-driver" type="button">📍 My location</button>
+        </header>
+
+        <div id="driverMap" aria-label="Live driver map"></div>
+
+        <section class="active-pickups">
+            <h2>Active pickups</h2>
+            <div id="activePickups">No accepted pickups yet.</div>
+        </section>
+    </main>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script type="module" src="driver-map.js"></script>
+</body>
+</html>

@@ -84,7 +84,10 @@ function playNewRequestSound() {
 
 function renderRequests(data, newRequestIds = new Set()) {
     requestsDiv.innerHTML = `
-        <div class="dashboard-heading"><h1>🚖 Ray's Taxi Driver Dashboard</h1></div>`;
+        <div class="dashboard-heading">
+            <h1>🚖 Ray's Taxi Driver Dashboard</h1>
+            <a class="map-page-link" href="driver-map.html">🗺️ Live map</a>
+        </div>`;
 
     if (!data) {
         requestsDiv.innerHTML += "<p>No requests yet.</p>";
