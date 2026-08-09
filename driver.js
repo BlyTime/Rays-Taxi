@@ -43,6 +43,18 @@ function validLocation(request) {
         Number.isFinite(Number(request.longitude));
 }
 
+function nextRideStep(status) {
+    const steps = {
+        waiting: { label: "🚕 Accept", nextStatus: "Accepted", timestamp: "acceptedAt" },
+        accepted: { label: "🛣️ En route", nextStatus: "En route", timestamp: "enRouteAt" },
+        "en route": { label: "📍 Arrived", nextStatus: "Arrived", timestamp: "arrivedAt" },
+        arrived: { label: "🚖 Passenger onboard", nextStatus: "Picked up", timestamp: "pickedUpAt" },
+        "picked up": { label: "✅ Complete ride", nextStatus: "Completed", timestamp: "completedAt" }
+    };
+
+    return steps[status.toLowerCase()] || null;
+}
+
 function playNewRequestSound() {
     if (!alertsEnabled || !audioContext) return;
 
@@ -88,7 +100,8 @@ function renderRequests(data, newRequestIds = new Set()) {
             const accuracy = Number.isFinite(Number(request.accuracy))
                 ? `${Math.round(Number(request.accuracy))} m`
                 : "Unavailable";
-            const accepted = String(request.status || "").toLowerCase() === "accepted";
+            const currentStatus = String(request.status || "Waiting");
+            const step = nextRideStep(currentStatus);
             const isNew = newRequestIds.has(key);
 
             requestsDiv.innerHTML += `
@@ -106,8 +119,8 @@ function renderRequests(data, newRequestIds = new Set()) {
                         <a class="action ${phone ? "" : "is-disabled"}" href="${phone ? `https://wa.me/${phone}` : "#"}" target="_blank" rel="noopener" aria-label="Open WhatsApp" ${phone ? "" : "aria-disabled=\"true\""}>💬</a>
                         <a class="action ${phone ? "" : "is-disabled"}" href="${phone ? `tel:+${phone}` : "#"}" aria-label="Call passenger" ${phone ? "" : "aria-disabled=\"true\""}>📞</a>
                     </div>
-                    <button class="accept" type="button" data-request-id="${escapeHtml(key)}" ${accepted ? "disabled" : ""}>
-                        ${accepted ? "✓ Accepted" : "🚕 Accept"}
+                    <button class="ride-step" type="button" data-request-id="${escapeHtml(key)}" data-next-status="${step ? step.nextStatus : ""}" data-timestamp-field="${step ? step.timestamp : ""}" ${step ? "" : "disabled"}>
+                        ${step ? step.label : "✓ Ride completed"}
                     </button>
                 </article>`;
         });
@@ -130,7 +143,7 @@ onValue(requestsRef, (snapshot) => {
 requestsDiv.addEventListener("click", async (event) => {
     const disabledLink = event.target.closest("a.is-disabled");
     const alertToggle = event.target.closest("#alertToggle");
-    const button = event.target.closest(".accept");
+    const button = event.target.closest(".ride-step");
 
     if (disabledLink) {
         event.preventDefault();
@@ -154,18 +167,20 @@ requestsDiv.addEventListener("click", async (event) => {
 
     if (!button || button.disabled) return;
     button.disabled = true;
-    button.textContent = "Accepting...";
+    button.textContent = "Updating...";
 
     try {
+        const timestamp = new Date().toISOString();
         await update(ref(database, `requests/${button.dataset.requestId}`), {
-            status: "Accepted",
-            acceptedAt: new Date().toISOString()
+            status: button.dataset.nextStatus,
+            [button.dataset.timestampField]: timestamp,
+            statusUpdatedAt: timestamp
         });
     } catch (error) {
-        console.error("Could not accept request:", error);
+        console.error("Could not update ride status:", error);
         button.disabled = false;
-        button.textContent = "🚕 Accept";
-        alert("Could not accept this request. Please try again.");
+        button.textContent = "Try again";
+        alert("Could not update this ride. Please try again.");
     }
 });
 
