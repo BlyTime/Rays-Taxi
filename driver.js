@@ -9,6 +9,7 @@ let dashboardStarted = false;
 const TRACKED_RIDE_STATUSES = new Set(["accepted", "en route", "arrived"]);
 let activeRideIds = new Set();
 let dashboardLocationWatchId = null;
+let lastDashboardSignature = "";
 
 function escapeHtml(value) {
     const element = document.createElement("div");
@@ -142,6 +143,13 @@ function renderRequests(data, newRequestIds = new Set()) {
         });
 }
 
+function dashboardSignature(data) {
+    return JSON.stringify(Object.entries(data || {}).map(([requestId, request]) => {
+        const { driverLocation, ...dashboardRequest } = request;
+        return [requestId, dashboardRequest];
+    }));
+}
+
 function startDashboard() {
     if (dashboardStarted) return;
     dashboardStarted = true;
@@ -153,9 +161,16 @@ function startDashboard() {
             ? new Set([...currentRequestIds].filter((id) => !knownRequestIds.has(id)))
             : new Set();
 
+        const signature = dashboardSignature(data);
         knownRequestIds = currentRequestIds;
-        renderRequests(data, newRequestIds);
-        refreshWaitingTimes();
+
+        // Driver GPS updates only the customer's live map; do not rebuild the
+        // dashboard cards and interrupt a driver button press for those updates.
+        if (signature !== lastDashboardSignature) {
+            lastDashboardSignature = signature;
+            renderRequests(data, newRequestIds);
+            refreshWaitingTimes();
+        }
         syncDriverLocationSharing(data);
 
         if (newRequestIds.size) playNewRequestSound();

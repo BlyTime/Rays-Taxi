@@ -9,6 +9,7 @@ const rideStatusTitle = document.getElementById("rideStatusTitle");
 const rideStatusMessage = document.getElementById("rideStatusMessage");
 const liveTracking = document.getElementById("liveTracking");
 const trackingStatus = document.getElementById("trackingStatus");
+const centerDriverButton = document.getElementById("centerDriverButton");
 const cancelRequestButton = document.getElementById("cancelRequestButton");
 const finishRideButton = document.getElementById("finishRideButton");
 const savedRequestKey = "raysTaxiRequestId";
@@ -108,6 +109,7 @@ function updateLiveTracking(request, state) {
     setTimeout(() => customerMap.invalidateSize(), 0);
 
     if (!validMapPoint(request.driverLocation)) {
+        centerDriverButton.hidden = true;
         trackingStatus.textContent = "Waiting for the driver’s live location…";
         return;
     }
@@ -122,6 +124,7 @@ function updateLiveTracking(request, state) {
     }
 
     trackingStatus.textContent = "Live driver location is updating.";
+    centerDriverButton.hidden = false;
     if (!hasCenteredTrackingMap) {
         customerMap.fitBounds([pickupPoint, taxiPoint], { padding: [28, 28] });
         hasCenteredTrackingMap = true;
@@ -390,6 +393,12 @@ button.addEventListener("click", sendRequest);
 locationButton.addEventListener("click", getLocation);
 cancelRequestButton.addEventListener("click", cancelRequest);
 finishRideButton.addEventListener("click", startNewRequest);
+centerDriverButton.addEventListener("click", () => {
+    if (customerMap && taxiMarker) {
+        customerMap.setView(taxiMarker.getLatLng(), 16);
+        taxiMarker.openPopup();
+    }
+});
 
 const savedRequestId = localStorage.getItem(savedRequestKey);
 if (savedRequestId) {
