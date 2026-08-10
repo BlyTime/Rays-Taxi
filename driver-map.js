@@ -74,6 +74,11 @@ function validLocation(request) {
         Number.isFinite(Number(request.longitude));
 }
 
+function directionsUrl(request) {
+    const destination = `${request.latitude},${request.longitude}`;
+    return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}&travelmode=driving`;
+}
+
 function renderPickups(data) {
     const activeRequests = Object.entries(data || {})
         .filter(([, request]) => ACTIVE_STATUSES.has(String(request.status || "").toLowerCase()))
@@ -112,8 +117,15 @@ function renderPickups(data) {
             marker.setLatLng(point);
         }
 
-        marker.bindPopup(`<strong>${passenger}</strong><br>${state} pickup`);
-        return `<button class="pickup-list-item" type="button" data-request-id="${id}">📍 ${passenger}<span>${state}</span></button>`;
+        const navigationUrl = directionsUrl(request);
+        marker.bindPopup(`<strong>${passenger}</strong><br>${state} pickup<br><a href="${navigationUrl}" target="_blank" rel="noopener">Navigate</a>`);
+        return `
+            <div class="pickup-list-item">
+                <button class="pickup-focus" type="button" data-request-id="${id}">
+                    <span>📍 ${passenger}</span><small>${state}</small>
+                </button>
+                <a class="navigate-link" href="${navigationUrl}" target="_blank" rel="noopener">🧭 Navigate</a>
+            </div>`;
     }).join("");
 }
 
@@ -136,7 +148,7 @@ centerDriverButton.addEventListener("click", () => {
 });
 
 activePickups.addEventListener("click", (event) => {
-    const button = event.target.closest(".pickup-list-item");
+    const button = event.target.closest(".pickup-focus");
     if (!button) return;
 
     const marker = pickupMarkers.get(button.dataset.requestId);
