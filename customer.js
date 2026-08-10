@@ -164,6 +164,24 @@ function startNewRequest() {
     locationButton.textContent = "📍 Enable location";
     status.style.color = "white";
     status.textContent = "Tap “Enable location” to continue.";
+    prepareLocation();
+}
+
+async function prepareLocation() {
+    // When the customer has already allowed this site, fetch a fresh pickup
+    // location without showing the extra button again.
+    if (!navigator.permissions?.query) return;
+
+    try {
+        const permission = await navigator.permissions.query({ name: "geolocation" });
+        if (permission.state === "granted") {
+            locationButton.hidden = true;
+            getLocation();
+        }
+    } catch (error) {
+        // Some mobile browsers do not support checking geolocation permission.
+        // Those browsers keep the explicit button, which is the safest fallback.
+    }
 }
 
 function getLocation() {
@@ -206,8 +224,7 @@ function success(position) {
 
     status.style.color = gpsColor;
     status.innerHTML = `<b>GPS Signal: ${gpsStatus}</b><br><br>Accuracy: <b>${accuracy} meters</b>`;
-    locationButton.disabled = false;
-    locationButton.textContent = "🔄 Refresh location";
+    locationButton.hidden = true;
     button.disabled = false;
     button.hidden = false;
     button.textContent = "🚖 Request Taxi";
@@ -264,6 +281,7 @@ async function sendRequest() {
 function error(err) {
     button.disabled = true;
     button.hidden = true;
+    locationButton.hidden = false;
     locationButton.disabled = false;
     locationButton.textContent = "📍 Try location again";
     status.style.color = "#ff6666";
