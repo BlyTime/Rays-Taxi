@@ -1,4 +1,4 @@
-import { database, auth, ref, set, onValue, onAuthStateChanged } from "./firebase.js";
+import { database, auth, ref, set, update, onValue, onAuthStateChanged } from "./firebase.js";
 
 const DRIVER_ID = "ray";
 const ACTIVE_STATUSES = new Set(["accepted", "en route", "arrived"]);
@@ -15,8 +15,10 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
 
 let driverMarker;
 let driverPosition;
+let driverAccuracy = 0;
 let hasSetInitialView = false;
 let mapStarted = false;
+let activeRequestIds = new Set();
 
 function escapeHtml(value) {
     const element = document.createElement("div");
@@ -27,6 +29,7 @@ function escapeHtml(value) {
 function updateDriverPosition(position) {
     const { latitude, longitude, accuracy } = position.coords;
     driverPosition = [latitude, longitude];
+    driverAccuracy = Math.round(accuracy);
 
     if (!driverMarker) {
         driverMarker = L.circleMarker(driverPosition, {
@@ -55,10 +58,26 @@ function updateDriverPosition(position) {
         mapStatus.textContent = "⚠️ Map is open, but live location could not be shared.";
     });
 
+    shareLocationWithPassengers(latitude, longitude, Math.round(accuracy));
+
     if (!hasSetInitialView) {
         map.setView(driverPosition, 16);
         hasSetInitialView = true;
     }
+}
+
+function shareLocationWithPassengers(latitude, longitude, accuracy) {
+    const driverLocation = {
+        latitude,
+        longitude,
+        accuracy,
+        updatedAt: new Date().toISOString()
+    };
+
+    activeRequestIds.forEach((requestId) => {
+        update(ref(database, `requests/${requestId}`), { driverLocation })
+            .catch((error) => console.error("Could not share location with passenger:", error));
+    });
 }
 
 function showLocationError(error) {
@@ -87,6 +106,10 @@ function renderPickups(data) {
         .sort(([, a], [, b]) => new Date(a.acceptedAt || a.created || 0) - new Date(b.acceptedAt || b.created || 0));
 
     const activeIds = new Set(activeRequests.map(([id]) => id));
+    activeRequestIds = activeIds;
+    if (driverPosition && activeRequestIds.size) {
+        shareLocationWithPassengers(driverPosition[0], driverPosition[1], driverAccuracy);
+    }
     pickupMarkers.forEach((marker, id) => {
         if (!activeIds.has(id)) {
             map.removeLayer(marker);

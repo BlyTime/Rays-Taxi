@@ -9,6 +9,7 @@
 <title>Ray's Taxi</title>
 
 <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 
 </head>
 
@@ -82,6 +83,11 @@
         <div class="ride-icon">🚕</div>
         <h2 id="rideStatusTitle">Request sent</h2>
         <p id="rideStatusMessage">We are looking for your driver.</p>
+        <section id="liveTracking" class="live-tracking" hidden>
+            <h3>🚕 Your taxi is coming</h3>
+            <div id="customerMap" aria-label="Live taxi tracking map"></div>
+            <p id="trackingStatus">Waiting for the driver’s live location…</p>
+        </section>
         <p class="ride-note">Keep this page open for live ride updates.</p>
         <button id="cancelRequestButton" class="cancel-request" type="button" hidden>
             Cancel request
@@ -93,6 +99,8 @@
 
 </div>
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script type="module" src="customer.js"></script>
 
 </body>

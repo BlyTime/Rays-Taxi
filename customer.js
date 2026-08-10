@@ -7,6 +7,8 @@ const requestForm = document.getElementById("requestForm");
 const rideStatus = document.getElementById("rideStatus");
 const rideStatusTitle = document.getElementById("rideStatusTitle");
 const rideStatusMessage = document.getElementById("rideStatusMessage");
+const liveTracking = document.getElementById("liveTracking");
+const trackingStatus = document.getElementById("trackingStatus");
 const cancelRequestButton = document.getElementById("cancelRequestButton");
 const finishRideButton = document.getElementById("finishRideButton");
 const savedRequestKey = "raysTaxiRequestId";
@@ -31,6 +33,10 @@ let stopWatchingRide = null;
 let requestTimeoutId = null;
 let customerAudioContext = null;
 let lastRideState = "";
+let customerMap;
+let pickupMarker;
+let taxiMarker;
+let hasCenteredTrackingMap = false;
 
 async function ensurePassengerAuth() {
     if (auth.currentUser) return auth.currentUser;
@@ -58,11 +64,66 @@ function showRideStatus(request) {
 
     rideStatusTitle.textContent = title;
     rideStatusMessage.textContent = message;
+    updateLiveTracking(request, state);
     cancelRequestButton.hidden = state !== "waiting";
     finishRideButton.hidden = !["completed", "cancelled", "timed out"].includes(state);
     finishRideButton.textContent = state === "completed"
         ? "✅ Done — Request another taxi"
         : "🚕 Try requesting again";
+}
+
+function validMapPoint(point) {
+    return Number.isFinite(Number(point?.latitude)) &&
+        Number.isFinite(Number(point?.longitude));
+}
+
+function updateLiveTracking(request, state) {
+    const trackingActive = ["accepted", "en route", "arrived"].includes(state);
+    liveTracking.hidden = !trackingActive;
+
+    if (!trackingActive || !validMapPoint(request) || !window.L) return;
+
+    const pickupPoint = [Number(request.latitude), Number(request.longitude)];
+    if (!customerMap) {
+        customerMap = L.map("customerMap").setView(pickupPoint, 15);
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            maxZoom: 19,
+            attribution: "© OpenStreetMap contributors"
+        }).addTo(customerMap);
+        pickupMarker = L.circleMarker(pickupPoint, {
+            radius: 10,
+            color: "#ffffff",
+            weight: 2,
+            fillColor: "#f26b38",
+            fillOpacity: 1
+        }).addTo(customerMap).bindPopup("Your pickup point");
+    }
+
+    setTimeout(() => customerMap.invalidateSize(), 0);
+
+    if (!validMapPoint(request.driverLocation)) {
+        trackingStatus.textContent = "Waiting for the driver’s live location…";
+        return;
+    }
+
+    const taxiPoint = [Number(request.driverLocation.latitude), Number(request.driverLocation.longitude)];
+    if (!taxiMarker) {
+        taxiMarker = L.circleMarker(taxiPoint, {
+            radius: 12,
+            color: "#ffffff",
+            weight: 3,
+            fillColor: "#00b050",
+            fillOpacity: 1
+        }).addTo(customerMap).bindPopup("Your Ray’s Taxi driver");
+    } else {
+        taxiMarker.setLatLng(taxiPoint);
+    }
+
+    trackingStatus.textContent = "Live driver location is updating.";
+    if (!hasCenteredTrackingMap) {
+        customerMap.fitBounds([pickupPoint, taxiPoint], { padding: [28, 28] });
+        hasCenteredTrackingMap = true;
+    }
 }
 
 function watchRide(requestId) {
@@ -164,6 +225,11 @@ function startNewRequest() {
     accuracy = 0;
     gpsStatus = "";
     lastRideState = "";
+    customerMap?.remove();
+    customerMap = null;
+    pickupMarker = null;
+    taxiMarker = null;
+    hasCenteredTrackingMap = false;
     button.disabled = true;
     button.hidden = true;
     locationButton.hidden = false;

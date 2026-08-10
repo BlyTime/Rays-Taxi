@@ -187,6 +187,31 @@ font-size:13px;
 color:#888;
 }
 
+.live-tracking{
+margin-top:22px;
+padding:14px;
+border-radius:12px;
+background:#142333;
+text-align:left;
+}
+
+.live-tracking h3{
+margin:0 0 12px;
+font-size:17px;
+color:white;
+}
+
+#customerMap{
+height:250px;
+border-radius:10px;
+overflow:hidden;
+}
+
+.live-tracking #trackingStatus{
+margin-top:10px;
+font-size:13px;
+}
+
 .cancel-request{
 margin-top:22px;
 background:#9f2c2c;

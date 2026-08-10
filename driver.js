@@ -196,6 +196,10 @@ requestsDiv.addEventListener("click", async (event) => {
             changes.driverId = "ray";
         }
 
+        if (button.dataset.nextStatus === "Picked up") {
+            changes.driverLocation = null;
+        }
+
         await update(ref(database, `requests/${button.dataset.requestId}`), changes);
     } catch (error) {
         console.error("Could not update ride status:", error);
