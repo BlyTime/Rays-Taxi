@@ -1,4 +1,4 @@
-import { database, ref, set, onValue } from "./firebase.js";
+import { database, auth, ref, set, onValue, onAuthStateChanged } from "./firebase.js";
 
 const DRIVER_ID = "ray";
 const ACTIVE_STATUSES = new Set(["accepted", "en route", "arrived"]);
@@ -16,6 +16,7 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
 let driverMarker;
 let driverPosition;
 let hasSetInitialView = false;
+let mapStarted = false;
 
 function escapeHtml(value) {
     const element = document.createElement("div");
@@ -129,19 +130,32 @@ function renderPickups(data) {
     }).join("");
 }
 
-onValue(ref(database, "requests"), (snapshot) => {
-    renderPickups(snapshot.val());
-});
+function startMap() {
+    if (mapStarted) return;
+    mapStarted = true;
 
-if (navigator.geolocation) {
-    navigator.geolocation.watchPosition(updateDriverPosition, showLocationError, {
-        enableHighAccuracy: true,
-        maximumAge: 5000,
-        timeout: 15000
+    onValue(ref(database, "requests"), (snapshot) => {
+        renderPickups(snapshot.val());
     });
-} else {
-    mapStatus.textContent = "⚠️ This browser does not support live location.";
+
+    if (navigator.geolocation) {
+        navigator.geolocation.watchPosition(updateDriverPosition, showLocationError, {
+            enableHighAccuracy: true,
+            maximumAge: 5000,
+            timeout: 15000
+        });
+    } else {
+        mapStatus.textContent = "⚠️ This browser does not support live location.";
+    }
 }
+
+onAuthStateChanged(auth, (user) => {
+    if (!user || user.isAnonymous) {
+        mapStatus.innerHTML = '🔒 <a class="back-link" href="driver-login.html">Driver sign-in required</a>';
+        return;
+    }
+    startMap();
+});
 
 centerDriverButton.addEventListener("click", () => {
     if (driverPosition) map.setView(driverPosition, 16);

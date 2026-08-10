@@ -1,10 +1,11 @@
-import { database, ref, onValue, update } from "./firebase.js";
+import { database, auth, ref, onValue, onAuthStateChanged, update } from "./firebase.js";
 
 const requestsDiv = document.getElementById("requests");
 const requestsRef = ref(database, "requests");
 let knownRequestIds = null;
 let alertsEnabled = false;
 let audioContext;
+let dashboardStarted = false;
 
 function escapeHtml(value) {
     const element = document.createElement("div");
@@ -138,18 +139,35 @@ function renderRequests(data, newRequestIds = new Set()) {
         });
 }
 
-onValue(requestsRef, (snapshot) => {
-    const data = snapshot.val() || {};
-    const currentRequestIds = new Set(Object.keys(data));
-    const newRequestIds = knownRequestIds
-        ? new Set([...currentRequestIds].filter((id) => !knownRequestIds.has(id)))
-        : new Set();
+function startDashboard() {
+    if (dashboardStarted) return;
+    dashboardStarted = true;
 
-    knownRequestIds = currentRequestIds;
-    renderRequests(data, newRequestIds);
-    refreshWaitingTimes();
+    onValue(requestsRef, (snapshot) => {
+        const data = snapshot.val() || {};
+        const currentRequestIds = new Set(Object.keys(data));
+        const newRequestIds = knownRequestIds
+            ? new Set([...currentRequestIds].filter((id) => !knownRequestIds.has(id)))
+            : new Set();
 
-    if (newRequestIds.size) playNewRequestSound();
+        knownRequestIds = currentRequestIds;
+        renderRequests(data, newRequestIds);
+        refreshWaitingTimes();
+
+        if (newRequestIds.size) playNewRequestSound();
+    });
+}
+
+onAuthStateChanged(auth, (user) => {
+    if (!user || user.isAnonymous) {
+        requestsDiv.innerHTML = `
+            <h1>🚖 Ray's Taxi Driver Dashboard</h1>
+            <p>Driver sign-in is required.</p>
+            <p><a class="map-page-link" href="driver-login.html">Sign in as driver</a></p>`;
+        return;
+    }
+
+    startDashboard();
 });
 
 requestsDiv.addEventListener("click", async (event) => {
@@ -167,11 +185,18 @@ requestsDiv.addEventListener("click", async (event) => {
 
     try {
         const timestamp = new Date().toISOString();
-        await update(ref(database, `requests/${button.dataset.requestId}`), {
+        const changes = {
             status: button.dataset.nextStatus,
             [button.dataset.timestampField]: timestamp,
             statusUpdatedAt: timestamp
-        });
+        };
+
+        if (button.dataset.nextStatus === "Accepted") {
+            changes.driverUid = auth.currentUser.uid;
+            changes.driverId = "ray";
+        }
+
+        await update(ref(database, `requests/${button.dataset.requestId}`), changes);
     } catch (error) {
         console.error("Could not update ride status:", error);
         button.disabled = false;

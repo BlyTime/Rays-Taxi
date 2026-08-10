@@ -12,6 +12,14 @@ import {
     onValue
 } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-database.js";
 
+import {
+    getAuth,
+    signInAnonymously,
+    onAuthStateChanged,
+    signInWithEmailAndPassword,
+    signOut
+} from "https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js";
+
 const firebaseConfig = {
 
     apiKey: "AIzaSyCkxcHldzvMJun6lAcZuI5ZwKr1fsmjYv8",
@@ -34,9 +42,13 @@ const app = initializeApp(firebaseConfig);
 
 const database = getDatabase(app);
 
+const auth = getAuth(app);
+
 export {
 
     database,
+
+    auth,
 
     ref,
 
@@ -46,6 +58,14 @@ export {
 
     update,
 
-    onValue
+    onValue,
+
+    signInAnonymously,
+
+    onAuthStateChanged,
+
+    signInWithEmailAndPassword,
+
+    signOut
 
 };

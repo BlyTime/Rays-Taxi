@@ -1,4 +1,4 @@
-import { database, ref, push, set, update, onValue } from "./firebase.js";
+import { database, auth, ref, push, set, update, onValue, signInAnonymously } from "./firebase.js";
 
 const button = document.getElementById("sendButton");
 const locationButton = document.getElementById("locationButton");
@@ -31,6 +31,13 @@ let stopWatchingRide = null;
 let requestTimeoutId = null;
 let customerAudioContext = null;
 let lastRideState = "";
+
+async function ensurePassengerAuth() {
+    if (auth.currentUser) return auth.currentUser;
+
+    const credential = await signInAnonymously(auth);
+    return credential.user;
+}
 
 function showRideStatus(request) {
     requestForm.hidden = true;
@@ -244,6 +251,15 @@ async function sendRequest() {
         return;
     }
 
+    let passengerUser;
+    try {
+        passengerUser = await ensurePassengerAuth();
+    } catch (error) {
+        console.error("Could not create secure passenger session:", error);
+        alert("Unable to start a secure taxi request. Please try again shortly.");
+        return;
+    }
+
     button.disabled = true;
     button.textContent = "Sending...";
     enableCustomerAlerts();
@@ -260,6 +276,7 @@ async function sendRequest() {
             longitude,
             accuracy,
             gpsStatus,
+            ownerUid: passengerUser.uid,
             status: "Waiting",
             created: createdAt.toISOString(),
             expiresAt: new Date(createdAt.getTime() + REQUEST_TIMEOUT_MINUTES * 60000).toISOString(),

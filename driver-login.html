@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ray's Taxi Driver Sign In</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <main class="card">
+        <div class="logo">🚕</div>
+        <h1>Driver sign in</h1>
+        <p>Only authorised Ray’s Taxi drivers can open the dispatch dashboard.</p>
+
+        <input id="driverEmail" type="email" autocomplete="email" placeholder="Driver email">
+        <input id="driverPassword" type="password" autocomplete="current-password" placeholder="Password">
+        <button id="driverLoginButton" type="button">Sign in</button>
+        <p id="loginStatus" class="small"></p>
+    </main>
+    <script type="module" src="driver-login.js"></script>
+</body>
+</html>
