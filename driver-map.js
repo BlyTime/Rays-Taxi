@@ -13,6 +13,12 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     attribution: "© OpenStreetMap contributors"
 }).addTo(map);
 
+const taxiIcon = L.icon({
+    iconUrl: "taxi-ipsum.png",
+    iconSize: [70, 47],
+    iconAnchor: [35, 24]
+});
+
 let driverMarker;
 let driverPosition;
 let driverAccuracy = 0;
@@ -32,13 +38,7 @@ function updateDriverPosition(position) {
     driverAccuracy = Math.round(accuracy);
 
     if (!driverMarker) {
-        driverMarker = L.circleMarker(driverPosition, {
-            radius: 13,
-            color: "#ffffff",
-            weight: 3,
-            fillColor: "#00b050",
-            fillOpacity: 1
-        })
+        driverMarker = L.marker(driverPosition, { icon: taxiIcon, zIndexOffset: 1000 })
             .addTo(map)
             .bindPopup("🚕 You are here");
     } else {

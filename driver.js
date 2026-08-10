@@ -6,6 +6,9 @@ let knownRequestIds = null;
 let alertsEnabled = false;
 let audioContext;
 let dashboardStarted = false;
+const TRACKED_RIDE_STATUSES = new Set(["accepted", "en route", "arrived"]);
+let activeRideIds = new Set();
+let dashboardLocationWatchId = null;
 
 function escapeHtml(value) {
     const element = document.createElement("div");
@@ -153,8 +156,51 @@ function startDashboard() {
         knownRequestIds = currentRequestIds;
         renderRequests(data, newRequestIds);
         refreshWaitingTimes();
+        syncDriverLocationSharing(data);
 
         if (newRequestIds.size) playNewRequestSound();
+    });
+}
+
+function syncDriverLocationSharing(data) {
+    activeRideIds = new Set(
+        Object.entries(data || {})
+            .filter(([, request]) => TRACKED_RIDE_STATUSES.has(String(request.status || "").toLowerCase()))
+            .map(([requestId]) => requestId)
+    );
+
+    if (!activeRideIds.size) {
+        if (dashboardLocationWatchId !== null) {
+            navigator.geolocation.clearWatch(dashboardLocationWatchId);
+            dashboardLocationWatchId = null;
+        }
+        return;
+    }
+
+    beginDriverLocationSharing();
+}
+
+function beginDriverLocationSharing() {
+    if (dashboardLocationWatchId !== null || !navigator.geolocation) return;
+
+    dashboardLocationWatchId = navigator.geolocation.watchPosition((position) => {
+        const driverLocation = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            accuracy: Math.round(position.coords.accuracy),
+            updatedAt: new Date().toISOString()
+        };
+
+        activeRideIds.forEach((requestId) => {
+            update(ref(database, `requests/${requestId}`), { driverLocation })
+                .catch((error) => console.error("Could not share driver location:", error));
+        });
+    }, (error) => {
+        console.error("Driver location sharing is unavailable:", error);
+    }, {
+        enableHighAccuracy: true,
+        maximumAge: 5000,
+        timeout: 15000
     });
 }
 
@@ -194,10 +240,15 @@ requestsDiv.addEventListener("click", async (event) => {
         if (button.dataset.nextStatus === "Accepted") {
             changes.driverUid = auth.currentUser.uid;
             changes.driverId = "ray";
+            // Start the permission request from this driver tap, which is more
+            // reliable on mobile browsers than requesting it later.
+            activeRideIds.add(button.dataset.requestId);
+            beginDriverLocationSharing();
         }
 
         if (button.dataset.nextStatus === "Picked up") {
             changes.driverLocation = null;
+            activeRideIds.delete(button.dataset.requestId);
         }
 
         await update(ref(database, `requests/${button.dataset.requestId}`), changes);

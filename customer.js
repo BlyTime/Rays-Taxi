@@ -38,6 +38,12 @@ let pickupMarker;
 let taxiMarker;
 let hasCenteredTrackingMap = false;
 
+const taxiIcon = window.L ? L.icon({
+    iconUrl: "taxi-ipsum.png",
+    iconSize: [70, 47],
+    iconAnchor: [35, 24]
+}) : null;
+
 async function ensurePassengerAuth() {
     if (auth.currentUser) return auth.currentUser;
 
@@ -108,13 +114,9 @@ function updateLiveTracking(request, state) {
 
     const taxiPoint = [Number(request.driverLocation.latitude), Number(request.driverLocation.longitude)];
     if (!taxiMarker) {
-        taxiMarker = L.circleMarker(taxiPoint, {
-            radius: 12,
-            color: "#ffffff",
-            weight: 3,
-            fillColor: "#00b050",
-            fillOpacity: 1
-        }).addTo(customerMap).bindPopup("Your Ray’s Taxi driver");
+        taxiMarker = L.marker(taxiPoint, { icon: taxiIcon })
+            .addTo(customerMap)
+            .bindPopup("Your Ray’s Taxi driver");
     } else {
         taxiMarker.setLatLng(taxiPoint);
     }
