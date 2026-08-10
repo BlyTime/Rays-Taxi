@@ -22,9 +22,7 @@
 
     <div id="requestForm">
 
-        <p>
-            <b>Your driver is locating your pickup position.</b>
-        </p>
+        <p><b>Share your pickup location to request a taxi.</b></p>
 
     <input
     id="customerName"
@@ -56,21 +54,25 @@
 
 </div>
 
-    <button id="sendButton" disabled>
+    <button id="locationButton" class="location-button" type="button">
+        📍 Enable location
+    </button>
 
-        Locating...
+    <button id="sendButton" type="button" disabled hidden>
+
+        🚖 Request Taxi
 
     </button>
 
     <div id="status">
 
-        Requesting GPS permission...
+        Tap “Enable location” to continue.
 
     </div>
 
         <div class="small">
 
-            Please allow location access when prompted.
+            Your location is used only to show the driver your pickup point.
 
         </div>
 

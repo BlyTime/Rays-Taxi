@@ -1,6 +1,7 @@
 import { database, ref, push, set, update, onValue } from "./firebase.js";
 
 const button = document.getElementById("sendButton");
+const locationButton = document.getElementById("locationButton");
 const status = document.getElementById("status");
 const requestForm = document.getElementById("requestForm");
 const rideStatus = document.getElementById("rideStatus");
@@ -157,16 +158,22 @@ function startNewRequest() {
     gpsStatus = "";
     lastRideState = "";
     button.disabled = true;
-    button.textContent = "Locating...";
-    getLocation();
+    button.hidden = true;
+    locationButton.hidden = false;
+    locationButton.disabled = false;
+    locationButton.textContent = "📍 Enable location";
+    status.style.color = "white";
+    status.textContent = "Tap “Enable location” to continue.";
 }
 
 function getLocation() {
+    locationButton.disabled = true;
     status.style.color = "white";
-    status.innerHTML = "📡 Finding your GPS location...";
+    status.innerHTML = "📡 Requesting your pickup location…";
 
     if (!navigator.geolocation) {
         status.innerHTML = "Your browser does not support GPS.";
+        locationButton.disabled = false;
         return;
     }
 
@@ -199,7 +206,10 @@ function success(position) {
 
     status.style.color = gpsColor;
     status.innerHTML = `<b>GPS Signal: ${gpsStatus}</b><br><br>Accuracy: <b>${accuracy} meters</b>`;
+    locationButton.disabled = false;
+    locationButton.textContent = "🔄 Refresh location";
     button.disabled = false;
+    button.hidden = false;
     button.textContent = "🚖 Request Taxi";
 }
 
@@ -253,11 +263,14 @@ async function sendRequest() {
 
 function error(err) {
     button.disabled = true;
+    button.hidden = true;
+    locationButton.disabled = false;
+    locationButton.textContent = "📍 Try location again";
     status.style.color = "#ff6666";
 
     switch (err.code) {
         case err.PERMISSION_DENIED:
-            status.textContent = "Location permission denied.";
+            status.textContent = "Location is blocked. Allow Location for this site in your browser settings, then tap Try location again.";
             break;
         case err.POSITION_UNAVAILABLE:
             status.textContent = "GPS unavailable.";
@@ -271,6 +284,7 @@ function error(err) {
 }
 
 button.addEventListener("click", sendRequest);
+locationButton.addEventListener("click", getLocation);
 cancelRequestButton.addEventListener("click", cancelRequest);
 finishRideButton.addEventListener("click", startNewRequest);
 
@@ -278,5 +292,5 @@ const savedRequestId = localStorage.getItem(savedRequestKey);
 if (savedRequestId) {
     watchRide(savedRequestId);
 } else {
-    getLocation();
+    startNewRequest();
 }
