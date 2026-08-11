@@ -476,13 +476,20 @@ animation:new-request-pulse 1.2s ease-in-out 3;
 
 .new-request-label{
 display:inline-block;
-margin-bottom:10px;
 padding:5px 9px;
 border-radius:999px;
 background:#fdd017;
 color:#101820;
 font-size:12px;
 font-weight:bold;
+}
+
+.request-card-top{
+display:flex;
+align-items:center;
+justify-content:space-between;
+gap:12px;
+min-height:28px;
 }
 
 @keyframes new-request-pulse{
@@ -494,6 +501,10 @@ display:flex;
 align-items:center;
 justify-content:space-between;
 gap:12px;
+}
+
+.request-name-row{
+margin-top:4px;
 }
 
 .driver-page .request h2{
@@ -513,6 +524,27 @@ box-shadow:0 0 0 2px rgba(255,255,255,.18);
 
 .driver-page .request p{
 margin:12px 0 0;
+}
+
+.request-meta{
+display:flex;
+flex-wrap:wrap;
+gap:7px 18px;
+margin-top:10px;
+color:#c7c7c7;
+font-size:15px;
+}
+
+.request-meta span{
+white-space:nowrap;
+}
+
+.request-footer{
+display:flex;
+align-items:center;
+justify-content:space-between;
+gap:12px;
+margin-top:14px;
 }
 
 .status{
@@ -535,7 +567,7 @@ background:#56606e;
 .request-actions{
 display:flex;
 gap:10px;
-margin-top:18px;
+margin:0;
 }
 
 .action{
@@ -559,7 +591,7 @@ text-decoration:none;
 width:auto;
 min-width:44px;
 padding:12px 16px;
-margin-top:14px;
+margin:0;
 background:#00b050;
 color:white;
 }
@@ -665,4 +697,6 @@ white-space:nowrap;
 .map-header{ align-items:flex-start; flex-direction:column; }
 .request-heading{ align-items:flex-start; flex-direction:column; }
 .request-actions{ grid-template-columns:1fr; }
+.request-footer{ align-items:stretch; flex-direction:column; }
+.request-footer .ride-step{ width:100%; }
 }

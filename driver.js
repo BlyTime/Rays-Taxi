@@ -23,6 +23,7 @@ let dashboardLocationWatchId = null;
 let lastDashboardSignature = "";
 let currentDriverProfile = null;
 let stopWatchingDriverProfile = null;
+let stopWatchingDriverLocation = null;
 let deviceMode = localStorage.getItem(DEVICE_MODE_KEY) || "display";
 let latestRequests = {};
 
@@ -140,22 +141,28 @@ function renderRequests(data, newRequestIds = new Set()) {
 
             return `
                 <article class="request ${isNew ? "new-request" : ""}" data-request-id="${escapeHtml(key)}" style="--ride-colour:${colour}">
-                    ${isNew ? "<span class=\"new-request-label\">New request</span>" : ""}
-                    <div class="request-heading">
-                        <h2><span class="ride-colour-dot" aria-hidden="true"></span>👤 ${passenger}</h2>
+                    <div class="request-card-top">
+                        ${isNew ? "<span class=\"new-request-label\">New request</span>" : "<span></span>"}
                         <span class="status status-${expired ? "timed-out" : statusKey}">${expired ? "Timed out" : status}</span>
                     </div>
-                    <p class="phone">📞 ${phone ? `+${phone}` : "Phone unavailable"}</p>
-                    <p class="waiting">⏱️ <span data-created="${escapeHtml(request.created || "")}" data-ended="${escapeHtml(waitingEndedAt)}">${waitingText(request.created, waitingEndedAt)}</span></p>
-                    <p class="gps">📡 GPS: <strong>${gpsStatus}</strong> · ${accuracy}</p>
-                    <div class="request-actions">
-                        <a class="action ${hasLocation ? "" : "is-disabled"}" href="${hasLocation ? directionsUrl(request) : "#"}" target="_blank" rel="noopener" aria-label="Navigate to pickup" ${hasLocation ? "" : "aria-disabled=\"true\""}>🧭</a>
-                        <a class="action ${phone ? "" : "is-disabled"}" href="${phone ? `https://wa.me/${phone}` : "#"}" target="_blank" rel="noopener" aria-label="Open WhatsApp" ${phone ? "" : "aria-disabled=\"true\""}>💬</a>
-                        <a class="action ${phone ? "" : "is-disabled"}" href="${phone ? `tel:+${phone}` : "#"}" aria-label="Call passenger" ${phone ? "" : "aria-disabled=\"true\""}>📞</a>
+                    <div class="request-heading request-name-row">
+                        <h2><span class="ride-colour-dot" aria-hidden="true"></span>👤 ${passenger}</h2>
                     </div>
-                    <button class="ride-step" type="button" data-request-id="${escapeHtml(key)}" data-next-status="${step ? step.nextStatus : ""}" data-timestamp-field="${step ? step.timestamp : ""}" ${step ? "" : "disabled"}>
-                        ${step ? step.label : expired ? "⌛ Request timed out" : currentStatus.toLowerCase() === "cancelled" ? "✕ Request cancelled" : "✓ Ride completed"}
-                    </button>
+                    <div class="request-meta">
+                        <span>📞 ${phone ? `+${phone}` : "Phone unavailable"}</span>
+                        <span>⏱️ <span data-created="${escapeHtml(request.created || "")}" data-ended="${escapeHtml(waitingEndedAt)}">${waitingText(request.created, waitingEndedAt)}</span></span>
+                        <span>📡 <strong>${gpsStatus}</strong> · ${accuracy}</span>
+                    </div>
+                    <div class="request-footer">
+                        <div class="request-actions">
+                            <a class="action ${hasLocation ? "" : "is-disabled"}" href="${hasLocation ? directionsUrl(request) : "#"}" target="_blank" rel="noopener" aria-label="Navigate to pickup" ${hasLocation ? "" : "aria-disabled=\"true\""}>🧭</a>
+                            <a class="action ${phone ? "" : "is-disabled"}" href="${phone ? `https://wa.me/${phone}` : "#"}" target="_blank" rel="noopener" aria-label="Open WhatsApp" ${phone ? "" : "aria-disabled=\"true\""}>💬</a>
+                            <a class="action ${phone ? "" : "is-disabled"}" href="${phone ? `tel:+${phone}` : "#"}" aria-label="Call passenger" ${phone ? "" : "aria-disabled=\"true\""}>📞</a>
+                        </div>
+                        <button class="ride-step" type="button" data-request-id="${escapeHtml(key)}" data-next-status="${step ? step.nextStatus : ""}" data-timestamp-field="${step ? step.timestamp : ""}" ${step ? "" : "disabled"}>
+                            ${step ? step.label : expired ? "⌛ Request timed out" : currentStatus.toLowerCase() === "cancelled" ? "✕ Request cancelled" : "✓ Ride completed"}
+                        </button>
+                    </div>
                 </article>`;
         }).join("");
 }
@@ -307,6 +314,16 @@ function watchDriverProfile(user) {
     });
 }
 
+function watchDriverLiveLocation() {
+    stopWatchingDriverLocation?.();
+    stopWatchingDriverLocation = onValue(ref(database, "drivers/ray/liveLocation"), (snapshot) => {
+        const sharedLocation = snapshot.val();
+        if (!validDriverLocation(sharedLocation)) return;
+        lastDriverLocation = sharedLocation;
+        showDriverMarker(sharedLocation);
+    });
+}
+
 function syncDriverLocationSharing(data) {
     if (!isSharingGps()) return;
     activeRideIds = new Set(Object.entries(data || {})
@@ -327,6 +344,10 @@ function beginDriverLocationSharing() {
         lastDriverLocation = driverLocation;
         showDriverMarker(driverLocation);
         mapStatus.textContent = `📡 Sharing live GPS · accuracy ${driverLocation.accuracy} m`;
+        // This private driver record powers the Chromebook's My location
+        // button even before a customer has been accepted.
+        update(ref(database, "drivers/ray"), { liveLocation: driverLocation })
+            .catch((error) => console.error("Could not share private driver location:", error));
         activeRideIds.forEach((requestId) => {
             update(ref(database, `requests/${requestId}`), { driverLocation })
                 .catch((error) => console.error("Could not share driver location:", error));
@@ -349,6 +370,7 @@ onAuthStateChanged(auth, (user) => {
         return;
     }
     watchDriverProfile(user);
+    watchDriverLiveLocation();
     startDashboard();
 });
 
