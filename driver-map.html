@@ -3,35 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ray's Taxi Live Map</title>
+    <title>Ray's Taxi Driver</title>
     <link rel="stylesheet" href="style.css">
     <link rel="manifest" href="driver-manifest.webmanifest">
     <link rel="apple-touch-icon" href="pwa-icon-192.png">
     <meta name="theme-color" content="#101820">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 </head>
-<body class="driver-page map-page">
+<body class="driver-page">
     <main class="map-layout">
-        <header class="map-header">
-            <div>
-                <a class="back-link" href="driver.html">← Dashboard</a>
-                <h1>🗺️ Live driver map</h1>
-                <p id="mapStatus">📡 Finding your live location…</p>
-            </div>
-            <button id="centerDriver" class="center-driver" type="button">📍 My location</button>
-        </header>
-
-        <div id="driverMap" aria-label="Live driver map"></div>
-
-        <section class="active-pickups">
-            <h2>Active pickups</h2>
-            <div id="activePickups">No accepted pickups yet.</div>
-        </section>
+        <h1>🗺️ Map moved</h1>
+        <p>The live map is now part of the driver dashboard.</p>
+        <p><a class="map-page-link" href="driver.html">Open driver dashboard</a></p>
     </main>
-
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-    <script type="module" src="driver-map.js"></script>
+    <script>window.location.replace("driver.html");</script>
     <script src="pwa.js"></script>
 </body>
 </html>

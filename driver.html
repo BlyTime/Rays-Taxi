@@ -9,6 +9,7 @@
 <title>Ray's Taxi Driver</title>
 
 <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link rel="manifest" href="driver-manifest.webmanifest">
 <link rel="apple-touch-icon" href="pwa-icon-192.png">
 <meta name="theme-color" content="#101820">
@@ -19,12 +20,32 @@
 
 <div id="requests">
 
-<h1>🚖 Ray's Taxi Driver Dashboard</h1>
+    <header class="dashboard-heading">
+        <div>
+            <h1>🚖 Ray's Taxi Driver</h1>
+            <p id="mapStatus" class="dashboard-map-status">Loading driver dashboard…</p>
+        </div>
+        <div class="device-mode-controls" aria-label="This device's role">
+            <button id="displayModeButton" class="device-mode" type="button">🖥️ Display only</button>
+            <button id="shareGpsButton" class="device-mode" type="button">📡 Share GPS</button>
+        </div>
+    </header>
 
-<p>Waiting for requests...</p>
+    <section class="dashboard-map-panel">
+        <div id="driverMap" aria-label="Live pickup map"></div>
+        <p class="map-note">Pins appear before acceptance. Card and pin colours match.</p>
+        <button id="centerDriver" class="center-driver" type="button">📍 My location</button>
+    </section>
+
+    <section class="dashboard-requests">
+        <h2>Ride requests</h2>
+        <div id="requestList"><p>Waiting for requests...</p></div>
+    </section>
 
 </div>
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script type="module" src="driver.js"></script>
 <script src="pwa.js"></script>
 
