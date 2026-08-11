@@ -1,8 +1,9 @@
 {
   "name": "Ray's Taxi Driver",
   "short_name": "Taxi Driver",
+  "id": "./driver-app",
   "description": "Ray's Taxi driver dashboard and live pickup map.",
-  "start_url": "./app.html",
+  "start_url": "./driver-login.html",
   "scope": "./",
   "display": "standalone",
   "background_color": "#101820",
@@ -12,13 +13,13 @@
       "src": "pwa-icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     },
     {
       "src": "pwa-icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     }
   ]
 }
