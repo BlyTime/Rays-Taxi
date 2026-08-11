@@ -14,6 +14,8 @@ import {
 
 import {
     getAuth,
+    setPersistence,
+    browserLocalPersistence,
     signInAnonymously,
     onAuthStateChanged,
     signInWithEmailAndPassword,
@@ -44,11 +46,18 @@ const database = getDatabase(app);
 
 const auth = getAuth(app);
 
+// Keep a signed-in driver signed in on this browser/PWA until they sign out
+// or explicitly clear the site's storage.
+const authPersistenceReady = setPersistence(auth, browserLocalPersistence)
+    .catch((error) => console.error("Could not save sign-in on this device:", error));
+
 export {
 
     database,
 
     auth,
+
+    authPersistenceReady,
 
     ref,
 

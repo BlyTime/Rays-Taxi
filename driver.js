@@ -1,4 +1,5 @@
 import { database, auth, ref, onValue, onAuthStateChanged, update } from "./firebase.js";
+import { getDriverProfile } from "./driver-profiles.js";
 
 const requestsDiv = document.getElementById("requests");
 const requestsRef = ref(database, "requests");
@@ -6,7 +7,7 @@ let knownRequestIds = null;
 let alertsEnabled = false;
 let audioContext;
 let dashboardStarted = false;
-const TRACKED_RIDE_STATUSES = new Set(["accepted", "en route", "arrived"]);
+const TRACKED_RIDE_STATUSES = new Set(["en route", "arrived"]);
 let activeRideIds = new Set();
 let dashboardLocationWatchId = null;
 let lastDashboardSignature = "";
@@ -252,13 +253,17 @@ requestsDiv.addEventListener("click", async (event) => {
             statusUpdatedAt: timestamp
         };
 
+        // Ask for GPS from the driver's En route tap, which mobile browsers
+        // recognise as a user action. The ride is added to activeRideIds only
+        // after its status changes, so no location is published while accepted.
+        if (button.dataset.nextStatus === "En route") {
+            beginDriverLocationSharing();
+        }
+
         if (button.dataset.nextStatus === "Accepted") {
             changes.driverUid = auth.currentUser.uid;
             changes.driverId = "ray";
-            // Start the permission request from this driver tap, which is more
-            // reliable on mobile browsers than requesting it later.
-            activeRideIds.add(button.dataset.requestId);
-            beginDriverLocationSharing();
+            changes.driverProfile = getDriverProfile(auth.currentUser.uid);
         }
 
         if (button.dataset.nextStatus === "Picked up") {
@@ -271,6 +276,10 @@ requestsDiv.addEventListener("click", async (event) => {
         console.error("Could not update ride status:", error);
         button.disabled = false;
         button.textContent = "Try again";
+        if (!activeRideIds.size && dashboardLocationWatchId !== null) {
+            navigator.geolocation.clearWatch(dashboardLocationWatchId);
+            dashboardLocationWatchId = null;
+        }
         alert("Could not update this ride. Please try again.");
     }
 });

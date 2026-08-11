@@ -1,7 +1,7 @@
 import { database, auth, ref, set, update, onValue, onAuthStateChanged } from "./firebase.js";
 
 const DRIVER_ID = "ray";
-const ACTIVE_STATUSES = new Set(["accepted", "en route", "arrived"]);
+const ACTIVE_STATUSES = new Set(["en route", "arrived"]);
 const mapStatus = document.getElementById("mapStatus");
 const activePickups = document.getElementById("activePickups");
 const centerDriverButton = document.getElementById("centerDriver");

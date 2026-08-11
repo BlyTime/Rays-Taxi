@@ -1,13 +1,20 @@
-import { auth, signInWithEmailAndPassword } from "./firebase.js";
+import { auth, authPersistenceReady, onAuthStateChanged, signInWithEmailAndPassword } from "./firebase.js";
 
 const emailInput = document.getElementById("driverEmail");
 const passwordInput = document.getElementById("driverPassword");
 const loginButton = document.getElementById("driverLoginButton");
 const loginStatus = document.getElementById("loginStatus");
 
-if (auth.currentUser && !auth.currentUser.isAnonymous) {
-    window.location.replace("driver.html");
-}
+const savedDriverEmail = localStorage.getItem("raysTaxiDriverEmail");
+if (savedDriverEmail) emailInput.value = savedDriverEmail;
+
+authPersistenceReady.finally(() => {
+    onAuthStateChanged(auth, (user) => {
+        if (user && !user.isAnonymous) {
+            window.location.replace("driver.html");
+        }
+    });
+});
 
 loginButton.addEventListener("click", async () => {
     const email = emailInput.value.trim();
@@ -23,8 +30,9 @@ loginButton.addEventListener("click", async () => {
 
     try {
         const credential = await signInWithEmailAndPassword(auth, email, password);
-        loginStatus.innerHTML = `Signed in.<br>Copy this Driver ID for the security rules:<br><code>${credential.user.uid}</code><br><br>Opening dashboard…`;
-        setTimeout(() => window.location.replace("driver.html"), 4000);
+        localStorage.setItem("raysTaxiDriverEmail", credential.user.email || email);
+        loginStatus.textContent = "Signed in. Opening dashboard…";
+        window.location.replace("driver.html");
     } catch (error) {
         console.error("Driver sign-in failed:", error);
         loginStatus.textContent = "Sign-in failed. Check your email and password.";

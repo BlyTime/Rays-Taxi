@@ -1,4 +1,4 @@
-const CACHE_NAME = "rays-taxi-v3";
+const CACHE_NAME = "rays-taxi-v4";
 const APP_SHELL = [
     "./",
     "./index.html",
@@ -10,6 +10,7 @@ const APP_SHELL = [
     "./driver.js",
     "./driver-login.js",
     "./driver-map.js",
+    "./driver-profiles.js",
     "./firebase.js",
   "./pwa.js",
   "./manifest.webmanifest",

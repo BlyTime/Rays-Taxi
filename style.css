@@ -237,6 +237,58 @@ font-size:24px;
 margin:0;
 }
 
+.driver-card{
+display:flex;
+align-items:center;
+gap:14px;
+margin-top:20px;
+padding:14px;
+border-radius:14px;
+background:#142333;
+text-align:left;
+}
+
+.driver-card-image{
+width:92px;
+height:66px;
+object-fit:contain;
+border-radius:10px;
+background:white;
+}
+
+.driver-card-details{
+min-width:0;
+}
+
+.driver-card-label{
+margin:0 0 4px !important;
+font-size:11px;
+font-weight:bold;
+letter-spacing:.08em;
+color:#fdd017 !important;
+}
+
+.driver-card h3{
+margin:0 0 5px;
+font-size:19px;
+}
+
+.driver-card-details > p:not(.driver-card-label){
+margin:3px 0 !important;
+font-size:14px;
+}
+
+.driver-card-licence{
+display:inline-block;
+margin-top:6px;
+padding:4px 8px;
+border-radius:999px;
+background:#087c40;
+color:#e0ffec;
+font-size:12px;
+font-weight:bold;
+}
+
 .ride-icon{
 font-size:58px;
 animation:taxi-bob 1.5s ease-in-out infinite;

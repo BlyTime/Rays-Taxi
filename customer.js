@@ -7,6 +7,12 @@ const requestForm = document.getElementById("requestForm");
 const rideStatus = document.getElementById("rideStatus");
 const rideStatusTitle = document.getElementById("rideStatusTitle");
 const rideStatusMessage = document.getElementById("rideStatusMessage");
+const driverCard = document.getElementById("driverCard");
+const driverCardImage = document.getElementById("driverCardImage");
+const driverCardName = document.getElementById("driverCardName");
+const driverCardVehicle = document.getElementById("driverCardVehicle");
+const driverCardPlate = document.getElementById("driverCardPlate");
+const driverCardLicence = document.getElementById("driverCardLicence");
 const liveTracking = document.getElementById("liveTracking");
 const trackingStatus = document.getElementById("trackingStatus");
 const centerDriverButton = document.getElementById("centerDriverButton");
@@ -71,6 +77,7 @@ function showRideStatus(request) {
 
     rideStatusTitle.textContent = title;
     rideStatusMessage.textContent = message;
+    updateDriverCard(request, state);
     updateLiveTracking(request, state);
     cancelRequestButton.hidden = state !== "waiting";
     finishRideButton.hidden = !["completed", "cancelled", "timed out"].includes(state);
@@ -79,13 +86,29 @@ function showRideStatus(request) {
         : "🚕 Try requesting again";
 }
 
+function updateDriverCard(request, state) {
+    const profile = request.driverProfile;
+    const driverAssigned = ["accepted", "en route", "arrived"].includes(state);
+    driverCard.hidden = !driverAssigned || !profile;
+
+    if (driverCard.hidden) return;
+
+    driverCardImage.src = profile.vehicleImage || "taxi-ipsum.png";
+    driverCardImage.onerror = () => { driverCardImage.src = "taxi-ipsum.png"; };
+    driverCardName.textContent = profile.driverName || "Ray's Taxi driver";
+    driverCardVehicle.textContent = profile.vehicle || "Taxi";
+    driverCardPlate.hidden = !profile.plate;
+    driverCardPlate.textContent = profile.plate ? `Plate: ${profile.plate}` : "";
+    driverCardLicence.textContent = profile.licenceStatus || "Verified driver";
+}
+
 function validMapPoint(point) {
     return Number.isFinite(Number(point?.latitude)) &&
         Number.isFinite(Number(point?.longitude));
 }
 
 function updateLiveTracking(request, state) {
-    const trackingActive = ["accepted", "en route", "arrived"].includes(state);
+    const trackingActive = ["en route", "arrived"].includes(state);
     liveTracking.hidden = !trackingActive;
 
     if (!trackingActive || !validMapPoint(request) || !window.L) return;
