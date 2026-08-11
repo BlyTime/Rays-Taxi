@@ -539,6 +539,11 @@ font-size:15px;
 white-space:nowrap;
 }
 
+.request-meta .trip-meter{
+color:#fdd017;
+font-weight:bold;
+}
+
 .request-footer{
 display:flex;
 align-items:center;
