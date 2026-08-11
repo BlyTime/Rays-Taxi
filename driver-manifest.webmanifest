@@ -2,7 +2,7 @@
   "name": "Ray's Taxi Driver",
   "short_name": "Taxi Driver",
   "description": "Ray's Taxi driver dashboard and live pickup map.",
-  "start_url": "./driver-login.html",
+  "start_url": "./app.html",
   "scope": "./",
   "display": "standalone",
   "background_color": "#101820",

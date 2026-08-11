@@ -2,7 +2,7 @@
   "name": "Ray's Taxi",
   "short_name": "Ray's Taxi",
   "description": "Request and manage Ray's Taxi rides.",
-  "start_url": "./index.html",
+  "start_url": "./app.html",
   "scope": "./",
   "display": "standalone",
   "background_color": "#101820",
