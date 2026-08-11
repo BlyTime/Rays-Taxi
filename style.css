@@ -249,11 +249,13 @@ text-align:left;
 }
 
 .driver-card-image{
-width:92px;
-height:66px;
-object-fit:contain;
-border-radius:10px;
-background:white;
+width:76px;
+height:76px;
+flex:0 0 76px;
+object-fit:cover;
+border-radius:50%;
+border:2px solid #fdd017;
+background:#304259;
 }
 
 .driver-card-details{

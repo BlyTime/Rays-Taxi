@@ -1,4 +1,4 @@
-const CACHE_NAME = "rays-taxi-v4";
+const CACHE_NAME = "rays-taxi-v5";
 const APP_SHELL = [
     "./",
     "./index.html",
@@ -17,7 +17,8 @@ const APP_SHELL = [
   "./driver-manifest.webmanifest",
   "./pwa-icon-192.png",
     "./pwa-icon-512.png",
-    "./taxi-ipsum.png"
+    "./taxi-ipsum.png",
+    "./reis-yaw-driver.png"
 ];
 
 self.addEventListener("install", (event) => {

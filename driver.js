@@ -1,5 +1,5 @@
 import { database, auth, ref, onValue, onAuthStateChanged, update } from "./firebase.js";
-import { getDriverProfile } from "./driver-profiles.js";
+import { getDefaultDriverProfile, normaliseDriverProfile } from "./driver-profiles.js";
 
 const requestsDiv = document.getElementById("requests");
 const requestsRef = ref(database, "requests");
@@ -11,6 +11,8 @@ const TRACKED_RIDE_STATUSES = new Set(["en route", "arrived"]);
 let activeRideIds = new Set();
 let dashboardLocationWatchId = null;
 let lastDashboardSignature = "";
+let currentDriverProfile = null;
+let stopWatchingDriverProfile = null;
 
 function escapeHtml(value) {
     const element = document.createElement("div");
@@ -178,6 +180,23 @@ function startDashboard() {
     });
 }
 
+function watchDriverProfile(user) {
+    stopWatchingDriverProfile?.();
+    const profileRef = ref(database, "drivers/ray/profile");
+
+    stopWatchingDriverProfile = onValue(profileRef, (snapshot) => {
+        const savedProfile = snapshot.val();
+        currentDriverProfile = normaliseDriverProfile(savedProfile, user.uid);
+
+        // Seed the driver's protected Firebase profile once. Customers do not
+        // read this path; an accepted ride gets only a profile snapshot.
+        if (!savedProfile) {
+            update(ref(database, "drivers/ray"), { profile: currentDriverProfile })
+                .catch((error) => console.error("Could not create driver profile:", error));
+        }
+    });
+}
+
 function syncDriverLocationSharing(data) {
     activeRideIds = new Set(
         Object.entries(data || {})
@@ -229,6 +248,7 @@ onAuthStateChanged(auth, (user) => {
         return;
     }
 
+    watchDriverProfile(user);
     startDashboard();
 });
 
@@ -263,7 +283,8 @@ requestsDiv.addEventListener("click", async (event) => {
         if (button.dataset.nextStatus === "Accepted") {
             changes.driverUid = auth.currentUser.uid;
             changes.driverId = "ray";
-            changes.driverProfile = getDriverProfile(auth.currentUser.uid);
+            const { driverUid, ...profileForCustomer } = currentDriverProfile || getDefaultDriverProfile(auth.currentUser.uid);
+            changes.driverProfile = profileForCustomer;
         }
 
         if (button.dataset.nextStatus === "Picked up") {

@@ -93,7 +93,7 @@ function updateDriverCard(request, state) {
 
     if (driverCard.hidden) return;
 
-    driverCardImage.src = profile.vehicleImage || "taxi-ipsum.png";
+    driverCardImage.src = profile.photo || profile.vehicleImage || "taxi-ipsum.png";
     driverCardImage.onerror = () => { driverCardImage.src = "taxi-ipsum.png"; };
     driverCardName.textContent = profile.driverName || "Ray's Taxi driver";
     driverCardVehicle.textContent = profile.vehicle || "Taxi";
