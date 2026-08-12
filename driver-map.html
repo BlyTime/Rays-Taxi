@@ -3,19 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ray's Taxi Driver</title>
+    <title>BLY RIDE Drive Mode</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     <link rel="manifest" href="driver-manifest.webmanifest">
     <link rel="apple-touch-icon" href="pwa-icon-192.png">
     <meta name="theme-color" content="#101820">
 </head>
-<body class="driver-page">
-    <main class="map-layout">
-        <h1>🗺️ Map moved</h1>
-        <p>The live map is now part of the driver dashboard.</p>
-        <p><a class="map-page-link" href="driver.html">Open driver dashboard</a></p>
+<body class="driver-page drive-mode-page">
+    <main class="drive-mode-layout">
+        <header class="drive-mode-header">
+            <a class="back-link" href="driver.html">← Dashboard</a>
+            <button id="centerDriver" class="center-driver" type="button">📍 My location</button>
+        </header>
+        <div id="driveMap" aria-label="Drive mode map"></div>
+        <p id="driveStatus" class="drive-status">Connecting to BLY RIDE Beacon…</p>
+
+        <section class="manual-trip-card">
+            <div>
+                <p class="manual-trip-label">CORNER PICKUP TRIP</p>
+                <strong id="manualTripDistance">0.00 km</strong>
+                <p id="manualTripStatus">Start when the passenger enters your taxi.</p>
+            </div>
+            <button id="manualTripButton" class="manual-trip-start" type="button">▶ Start trip</button>
+        </section>
+        <p class="drive-mode-note">Request dots are anonymous here. GPS and the trip meter come from the BLY RIDE Beacon app.</p>
     </main>
-    <script>window.location.replace("driver.html");</script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script type="module" src="driver-map.js"></script>
     <script src="pwa.js"></script>
 </body>
 </html>

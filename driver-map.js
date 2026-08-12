@@ -1,200 +1,104 @@
-import { database, auth, ref, set, update, onValue, onAuthStateChanged } from "./firebase.js";
+import { database, auth, ref, onValue, onAuthStateChanged, update } from "./firebase.js";
 
-const DRIVER_ID = "ray";
-const ACTIVE_STATUSES = new Set(["en route", "arrived"]);
-const mapStatus = document.getElementById("mapStatus");
-const activePickups = document.getElementById("activePickups");
+const map = L.map("driveMap").setView([6.8013, -58.1551], 13);
+const driveStatus = document.getElementById("driveStatus");
 const centerDriverButton = document.getElementById("centerDriver");
-const pickupMarkers = new Map();
+const manualTripButton = document.getElementById("manualTripButton");
+const manualTripDistance = document.getElementById("manualTripDistance");
+const manualTripStatus = document.getElementById("manualTripStatus");
+const requestMarkers = new Map();
+const PIN_COLOURS = ["#f26b38", "#2b83c6", "#8c5bd8", "#d95374", "#00a878", "#e29b17"];
 
-const map = L.map("driverMap").setView([6.8013, -58.1551], 13);
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom: 19,
     attribution: "© OpenStreetMap contributors"
 }).addTo(map);
 
-const taxiIcon = L.icon({
-    iconUrl: "taxi-ipsum.png",
-    iconSize: [70, 47],
-    iconAnchor: [35, 24]
-});
-
+const taxiIcon = L.icon({ iconUrl: "taxi-ipsum.png", iconSize: [70, 47], iconAnchor: [35, 24] });
 let driverMarker;
-let driverPosition;
-let driverAccuracy = 0;
-let hasSetInitialView = false;
-let mapStarted = false;
-let activeRequestIds = new Set();
+let driverLocation;
+let manualTrip = { active: false, distanceKm: 0 };
 
-function escapeHtml(value) {
-    const element = document.createElement("div");
-    element.textContent = value ?? "";
-    return element.innerHTML;
+function validLocation(location) {
+    return Number.isFinite(Number(location?.latitude)) && Number.isFinite(Number(location?.longitude));
 }
 
-function updateDriverPosition(position) {
-    const { latitude, longitude, accuracy } = position.coords;
-    driverPosition = [latitude, longitude];
-    driverAccuracy = Math.round(accuracy);
+function requestColour(requestId) {
+    let hash = 0;
+    for (const character of String(requestId)) hash = ((hash << 5) - hash) + character.charCodeAt(0);
+    return PIN_COLOURS[Math.abs(hash) % PIN_COLOURS.length];
+}
 
-    if (!driverMarker) {
-        driverMarker = L.marker(driverPosition, { icon: taxiIcon, zIndexOffset: 1000 })
-            .addTo(map)
-            .bindPopup("🚕 You are here");
-    } else {
-        driverMarker.setLatLng(driverPosition);
-    }
+function showDriverLocation(location) {
+    if (!validLocation(location)) return;
+    driverLocation = location;
+    const point = [Number(location.latitude), Number(location.longitude)];
+    if (!driverMarker) driverMarker = L.marker(point, { icon: taxiIcon, zIndexOffset: 1000 }).addTo(map);
+    else driverMarker.setLatLng(point);
+    driveStatus.textContent = `📡 Beacon GPS · accuracy ${Math.round(Number(location.accuracy) || 0)} m`;
+}
 
-    mapStatus.textContent = `📡 Sharing live location · GPS accuracy ${Math.round(accuracy)} m`;
-
-    set(ref(database, `drivers/${DRIVER_ID}`), {
-        latitude,
-        longitude,
-        accuracy: Math.round(accuracy),
-        updatedAt: new Date().toISOString(),
-        sharing: true
-    }).catch((error) => {
-        console.error("Could not share driver location:", error);
-        mapStatus.textContent = "⚠️ Map is open, but live location could not be shared.";
+function renderRequestDots(data) {
+    const visibleRequests = Object.entries(data || {}).filter(([, request]) => {
+        const status = String(request.status || "").toLowerCase();
+        return ["waiting", "accepted", "en route", "arrived"].includes(status) && validLocation(request);
     });
-
-    shareLocationWithPassengers(latitude, longitude, Math.round(accuracy));
-
-    if (!hasSetInitialView) {
-        map.setView(driverPosition, 16);
-        hasSetInitialView = true;
-    }
-}
-
-function shareLocationWithPassengers(latitude, longitude, accuracy) {
-    const driverLocation = {
-        latitude,
-        longitude,
-        accuracy,
-        updatedAt: new Date().toISOString()
-    };
-
-    activeRequestIds.forEach((requestId) => {
-        update(ref(database, `requests/${requestId}`), { driverLocation })
-            .catch((error) => console.error("Could not share location with passenger:", error));
-    });
-}
-
-function showLocationError(error) {
-    const messages = {
-        1: "Location permission was denied.",
-        2: "Your live location is unavailable.",
-        3: "Live location request timed out."
-    };
-    mapStatus.textContent = `⚠️ ${messages[error.code] || "Could not get your location."}`;
-}
-
-function validLocation(request) {
-    return Number.isFinite(Number(request.latitude)) &&
-        Number.isFinite(Number(request.longitude));
-}
-
-function directionsUrl(request) {
-    const destination = `${request.latitude},${request.longitude}`;
-    return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}&travelmode=driving`;
-}
-
-function renderPickups(data) {
-    const activeRequests = Object.entries(data || {})
-        .filter(([, request]) => ACTIVE_STATUSES.has(String(request.status || "").toLowerCase()))
-        .filter(([, request]) => validLocation(request))
-        .sort(([, a], [, b]) => new Date(a.acceptedAt || a.created || 0) - new Date(b.acceptedAt || b.created || 0));
-
-    const activeIds = new Set(activeRequests.map(([id]) => id));
-    activeRequestIds = activeIds;
-    if (driverPosition && activeRequestIds.size) {
-        shareLocationWithPassengers(driverPosition[0], driverPosition[1], driverAccuracy);
-    }
-    pickupMarkers.forEach((marker, id) => {
-        if (!activeIds.has(id)) {
+    const visibleIds = new Set(visibleRequests.map(([id]) => id));
+    requestMarkers.forEach((marker, id) => {
+        if (!visibleIds.has(id)) {
             map.removeLayer(marker);
-            pickupMarkers.delete(id);
+            requestMarkers.delete(id);
         }
     });
-
-    if (!activeRequests.length) {
-        activePickups.textContent = "No accepted pickups yet.";
-        return;
-    }
-
-    activePickups.innerHTML = activeRequests.map(([id, request]) => {
-        const passenger = escapeHtml(request.passenger || "Passenger");
-        const state = escapeHtml(request.status || "Accepted");
+    visibleRequests.forEach(([id, request]) => {
         const point = [Number(request.latitude), Number(request.longitude)];
-        let marker = pickupMarkers.get(id);
-
+        let marker = requestMarkers.get(id);
         if (!marker) {
-            marker = L.circleMarker(point, {
-                radius: 10,
-                color: "#ffffff",
-                weight: 2,
-                fillColor: "#f26b38",
-                fillOpacity: 1
-            }).addTo(map);
-            pickupMarkers.set(id, marker);
-        } else {
-            marker.setLatLng(point);
-        }
-
-        const navigationUrl = directionsUrl(request);
-        marker.bindPopup(`<strong>${passenger}</strong><br>${state} pickup<br><a href="${navigationUrl}" target="_blank" rel="noopener">Navigate</a>`);
-        return `
-            <div class="pickup-list-item">
-                <button class="pickup-focus" type="button" data-request-id="${id}">
-                    <span>📍 ${passenger}</span><small>${state}</small>
-                </button>
-                <a class="navigate-link" href="${navigationUrl}" target="_blank" rel="noopener">🧭 Navigate</a>
-            </div>`;
-    }).join("");
+            marker = L.circleMarker(point, { radius: 9, color: "#ffffff", weight: 2, fillColor: requestColour(id), fillOpacity: 1 }).addTo(map);
+            requestMarkers.set(id, marker);
+        } else marker.setLatLng(point);
+    });
 }
 
-function startMap() {
-    if (mapStarted) return;
-    mapStarted = true;
-
-    onValue(ref(database, "requests"), (snapshot) => {
-        renderPickups(snapshot.val());
-    });
-
-    if (navigator.geolocation) {
-        navigator.geolocation.watchPosition(updateDriverPosition, showLocationError, {
-            enableHighAccuracy: true,
-            maximumAge: 5000,
-            timeout: 15000
-        });
-    } else {
-        mapStatus.textContent = "⚠️ This browser does not support live location.";
-    }
+function renderManualTrip(value) {
+    manualTrip = { active: Boolean(value?.active), distanceKm: Number(value?.distanceKm) || 0 };
+    manualTripDistance.textContent = `${manualTrip.distanceKm.toFixed(2)} km`;
+    manualTripButton.textContent = manualTrip.active ? "■ Stop trip" : "▶ Start trip";
+    manualTripButton.classList.toggle("manual-trip-stop", manualTrip.active);
+    manualTripStatus.textContent = manualTrip.active
+        ? "Trip is running from the BLY RIDE Beacon GPS."
+        : manualTrip.distanceKm > 0 ? "Trip stopped. Final distance is saved above." : "Start when the passenger enters your taxi.";
 }
 
 onAuthStateChanged(auth, (user) => {
     if (!user || user.isAnonymous) {
-        mapStatus.innerHTML = '🔒 <a class="back-link" href="driver-login.html">Driver sign-in required</a>';
+        driveStatus.textContent = "🔒 Driver sign-in required";
         return;
     }
-    startMap();
+    onValue(ref(database, "drivers/ray/liveLocation"), (snapshot) => showDriverLocation(snapshot.val()));
+    onValue(ref(database, "drivers/ray/manualTrip"), (snapshot) => renderManualTrip(snapshot.val()));
+    onValue(ref(database, "requests"), (snapshot) => renderRequestDots(snapshot.val()));
+});
+
+manualTripButton.addEventListener("click", async () => {
+    manualTripButton.disabled = true;
+    try {
+        if (manualTrip.active) {
+            await update(ref(database, "drivers/ray/manualTrip"), { active: false, completedAt: new Date().toISOString() });
+        } else {
+            await update(ref(database, "drivers/ray/manualTrip"), { active: true, distanceKm: 0, startedAt: new Date().toISOString(), completedAt: null });
+        }
+    } catch (error) {
+        console.error("Could not update manual trip:", error);
+        alert("Could not update the trip. Please try again.");
+    } finally {
+        manualTripButton.disabled = false;
+    }
 });
 
 centerDriverButton.addEventListener("click", () => {
-    if (driverPosition) map.setView(driverPosition, 16);
+    if (validLocation(driverLocation)) map.setView([Number(driverLocation.latitude), Number(driverLocation.longitude)], 16);
 });
 
-activePickups.addEventListener("click", (event) => {
-    const button = event.target.closest(".pickup-focus");
-    if (!button) return;
-
-    const marker = pickupMarkers.get(button.dataset.requestId);
-    if (marker) {
-        map.setView(marker.getLatLng(), 16);
-        marker.openPopup();
-    }
-});
-
-// Mobile browsers can calculate the map size too early during page load.
 setTimeout(() => map.invalidateSize(), 300);
 window.addEventListener("resize", () => map.invalidateSize());
