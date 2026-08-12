@@ -1,4 +1,4 @@
-const CACHE_NAME = "rays-taxi-v9";
+const CACHE_NAME = "rays-taxi-v10";
 const APP_SHELL = [
     "./",
     "./index.html",

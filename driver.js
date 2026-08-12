@@ -1,34 +1,24 @@
-import { database, auth, ref, onValue, onAuthStateChanged, update } from "./firebase.js";
+import { database, auth, ref, onValue, onAuthStateChanged, update, signOut } from "./firebase.js";
 import { getDefaultDriverProfile, normaliseDriverProfile } from "./driver-profiles.js";
 
 const requestsDiv = document.getElementById("requests");
 const requestList = document.getElementById("requestList");
 const requestsRef = ref(database, "requests");
 const mapStatus = document.getElementById("mapStatus");
-const displayModeButton = document.getElementById("displayModeButton");
-const shareGpsButton = document.getElementById("shareGpsButton");
+const logoutButton = document.getElementById("logoutButton");
 const centerDriverButton = document.getElementById("centerDriver");
 
-const TRACKED_RIDE_STATUSES = new Set(["en route", "arrived"]);
-const TRIP_METER_STATUS = "picked up";
 const MAP_VISIBLE_STATUSES = new Set(["waiting", "accepted", "en route", "arrived"]);
-const DEVICE_MODE_KEY = "raysTaxiDriverDeviceMode";
 const PIN_COLOURS = ["#f26b38", "#2b83c6", "#8c5bd8", "#d95374", "#00a878", "#e29b17"];
 
 let knownRequestIds = null;
 let alertsEnabled = false;
 let audioContext;
 let dashboardStarted = false;
-let activeRideIds = new Set();
-let dashboardLocationWatchId = null;
 let lastDashboardSignature = "";
 let currentDriverProfile = null;
 let stopWatchingDriverProfile = null;
 let stopWatchingDriverLocation = null;
-let stopWatchingTripMeters = null;
-let deviceMode = localStorage.getItem(DEVICE_MODE_KEY) || "display";
-let latestRequests = {};
-const tripMeterStates = new Map();
 
 let map;
 let driverMarker;
@@ -40,10 +30,6 @@ function escapeHtml(value) {
     const element = document.createElement("div");
     element.textContent = value ?? "";
     return element.innerHTML;
-}
-
-function isSharingGps() {
-    return deviceMode === "share";
 }
 
 function requestColour(requestId) {
@@ -103,17 +89,6 @@ function directionsUrl(request) {
 
 function formatKilometres(distance) {
     return `${Math.max(0, Number(distance) || 0).toFixed(2)} km`;
-}
-
-function kilometresBetween(from, to) {
-    const earthRadiusKm = 6371;
-    const toRadians = (degrees) => degrees * Math.PI / 180;
-    const deltaLatitude = toRadians(Number(to.latitude) - Number(from.latitude));
-    const deltaLongitude = toRadians(Number(to.longitude) - Number(from.longitude));
-    const latitudeOne = toRadians(Number(from.latitude));
-    const latitudeTwo = toRadians(Number(to.latitude));
-    const value = Math.sin(deltaLatitude / 2) ** 2 + Math.cos(latitudeOne) * Math.cos(latitudeTwo) * Math.sin(deltaLongitude / 2) ** 2;
-    return earthRadiusKm * 2 * Math.atan2(Math.sqrt(value), Math.sqrt(1 - value));
 }
 
 function playNewRequestSound() {
@@ -261,34 +236,6 @@ function focusRequest(requestId) {
     marker.openPopup();
 }
 
-function updateDeviceModeUi() {
-    const sharing = isSharingGps();
-    displayModeButton.classList.toggle("is-active", !sharing);
-    shareGpsButton.classList.toggle("is-active", sharing);
-    displayModeButton.setAttribute("aria-pressed", String(!sharing));
-    shareGpsButton.setAttribute("aria-pressed", String(sharing));
-
-    if (!sharing) {
-        mapStatus.textContent = "🖥️ Display only · this device will not share GPS";
-    } else if (!lastDriverLocation) {
-        mapStatus.textContent = "📡 GPS sharing is armed · tap En route to begin ride tracking";
-    }
-}
-
-function setDeviceMode(mode) {
-    deviceMode = mode;
-    localStorage.setItem(DEVICE_MODE_KEY, mode);
-    updateDeviceModeUi();
-
-    if (isSharingGps()) {
-        beginDriverLocationSharing();
-        syncDriverLocationSharing(latestRequests);
-    } else {
-        activeRideIds = new Set();
-        stopDriverLocationSharing();
-    }
-}
-
 function dashboardSignature(data) {
     return JSON.stringify(Object.entries(data || {}).map(([requestId, request]) => {
         const { driverLocation, ...dashboardRequest } = request;
@@ -300,11 +247,10 @@ function startDashboard() {
     if (dashboardStarted) return;
     dashboardStarted = true;
     initMap();
-    updateDeviceModeUi();
+    mapStatus.textContent = "🖥️ Dispatch view · GPS supplied by BLY RIDE Beacon";
 
     onValue(requestsRef, (snapshot) => {
         const data = snapshot.val() || {};
-        latestRequests = data;
         const currentRequestIds = new Set(Object.keys(data));
         const newRequestIds = knownRequestIds ? new Set([...currentRequestIds].filter((id) => !knownRequestIds.has(id))) : new Set();
         knownRequestIds = currentRequestIds;
@@ -316,7 +262,6 @@ function startDashboard() {
             refreshWaitingTimes();
         }
         updateMap(data);
-        syncDriverLocationSharing(data);
         if (newRequestIds.size) playNewRequestSound();
     });
 }
@@ -344,110 +289,6 @@ function watchDriverLiveLocation() {
     });
 }
 
-function watchTripMeters() {
-    stopWatchingTripMeters?.();
-    stopWatchingTripMeters = onValue(ref(database, "drivers/ray/tripMeters"), (snapshot) => {
-        const savedMeters = snapshot.val() || {};
-        Object.entries(savedMeters).forEach(([requestId, meter]) => {
-            if (tripMeterStates.has(requestId) || !validDriverLocation(meter)) return;
-            tripMeterStates.set(requestId, {
-                lastLocation: meter,
-                distanceKm: Number(meter.distanceKm) || 0,
-                lastSavedAt: new Date(meter.updatedAt || 0).getTime() || 0,
-                lastSavedDistanceKm: Number(meter.distanceKm) || 0
-            });
-        });
-    });
-}
-
-function recordTripDistances(driverLocation) {
-    if (!isSharingGps() || Number(driverLocation.accuracy) > 80) return;
-
-    Object.entries(latestRequests).forEach(([requestId, request]) => {
-        if (String(request.status || "").toLowerCase() !== TRIP_METER_STATUS) return;
-
-        let meter = tripMeterStates.get(requestId);
-        if (!meter) {
-            tripMeterStates.set(requestId, {
-                lastLocation: driverLocation,
-                distanceKm: Number(request.tripDistanceKm) || 0,
-                lastSavedAt: 0,
-                lastSavedDistanceKm: Number(request.tripDistanceKm) || 0
-            });
-            return;
-        }
-
-        const segmentKm = kilometresBetween(meter.lastLocation, driverLocation);
-        const elapsedSeconds = Math.max(1, (new Date(driverLocation.updatedAt).getTime() - new Date(meter.lastLocation.updatedAt).getTime()) / 1000);
-        const estimatedSpeedKmh = (segmentKm / elapsedSeconds) * 3600;
-        meter.lastLocation = driverLocation;
-
-        // Ignore GPS jumps and extremely tiny movement. This is a practical
-        // trip estimate, not a certified fare meter.
-        if (segmentKm < 0.003 || estimatedSpeedKmh > 160) return;
-
-        meter.distanceKm += segmentKm;
-        const now = Date.now();
-        const shouldSave = now - meter.lastSavedAt > 5000 || meter.distanceKm - meter.lastSavedDistanceKm >= 0.01;
-        if (!shouldSave) return;
-
-        meter.lastSavedAt = now;
-        meter.lastSavedDistanceKm = meter.distanceKm;
-        const roundedDistance = Number(meter.distanceKm.toFixed(3));
-        update(ref(database, `requests/${requestId}`), {
-            tripDistanceKm: roundedDistance,
-            tripUpdatedAt: driverLocation.updatedAt
-        }).catch((error) => console.error("Could not save trip distance:", error));
-        update(ref(database, `drivers/ray/tripMeters/${requestId}`), {
-            latitude: driverLocation.latitude,
-            longitude: driverLocation.longitude,
-            accuracy: driverLocation.accuracy,
-            updatedAt: driverLocation.updatedAt,
-            distanceKm: roundedDistance
-        }).catch((error) => console.error("Could not save private trip meter:", error));
-    });
-}
-
-function syncDriverLocationSharing(data) {
-    if (!isSharingGps()) return;
-    activeRideIds = new Set(Object.entries(data || {})
-        .filter(([, request]) => TRACKED_RIDE_STATUSES.has(String(request.status || "").toLowerCase()))
-        .map(([requestId]) => requestId));
-    if (activeRideIds.size) beginDriverLocationSharing();
-}
-
-function beginDriverLocationSharing() {
-    if (!isSharingGps() || dashboardLocationWatchId !== null || !navigator.geolocation) return;
-    dashboardLocationWatchId = navigator.geolocation.watchPosition((position) => {
-        const driverLocation = {
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-            accuracy: Math.round(position.coords.accuracy),
-            updatedAt: new Date().toISOString()
-        };
-        lastDriverLocation = driverLocation;
-        showDriverMarker(driverLocation);
-        mapStatus.textContent = `📡 Sharing live GPS · accuracy ${driverLocation.accuracy} m`;
-        // This private driver record powers the Chromebook's My location
-        // button even before a customer has been accepted.
-        update(ref(database, "drivers/ray"), { liveLocation: driverLocation })
-            .catch((error) => console.error("Could not share private driver location:", error));
-        recordTripDistances(driverLocation);
-        activeRideIds.forEach((requestId) => {
-            update(ref(database, `requests/${requestId}`), { driverLocation })
-                .catch((error) => console.error("Could not share driver location:", error));
-        });
-    }, (error) => {
-        const messages = { 1: "Location permission was denied.", 2: "GPS is unavailable.", 3: "GPS request timed out." };
-        mapStatus.textContent = `⚠️ ${messages[error.code] || "Could not get location."}`;
-    }, { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 });
-}
-
-function stopDriverLocationSharing() {
-    if (dashboardLocationWatchId !== null) navigator.geolocation.clearWatch(dashboardLocationWatchId);
-    dashboardLocationWatchId = null;
-}
-
 onAuthStateChanged(auth, (user) => {
     if (!user || user.isAnonymous) {
         requestList.innerHTML = '<p>Driver sign-in is required. <a class="map-page-link" href="driver-login.html">Sign in as driver</a></p>';
@@ -456,7 +297,6 @@ onAuthStateChanged(auth, (user) => {
     }
     watchDriverProfile(user);
     watchDriverLiveLocation();
-    watchTripMeters();
     startDashboard();
 });
 
@@ -485,15 +325,8 @@ requestsDiv.addEventListener("click", async (event) => {
             const { driverUid, ...profileForCustomer } = currentDriverProfile || getDefaultDriverProfile(auth.currentUser.uid);
             changes.driverProfile = profileForCustomer;
         }
-        if (button.dataset.nextStatus === "En route" && isSharingGps()) beginDriverLocationSharing();
         if (button.dataset.nextStatus === "Picked up") {
             changes.driverLocation = null;
-            changes.tripDistanceKm = 0;
-            changes.tripStartedAt = timestamp;
-            activeRideIds.delete(button.dataset.requestId);
-        }
-        if (button.dataset.nextStatus === "Completed") {
-            changes.tripCompletedAt = timestamp;
         }
         await update(ref(database, `requests/${button.dataset.requestId}`), changes);
     } catch (error) {
@@ -504,8 +337,11 @@ requestsDiv.addEventListener("click", async (event) => {
     }
 });
 
-displayModeButton.addEventListener("click", () => setDeviceMode("display"));
-shareGpsButton.addEventListener("click", () => setDeviceMode("share"));
+logoutButton.addEventListener("click", async () => {
+    if (!confirm("Log out of the driver dashboard on this device?")) return;
+    await signOut(auth);
+    window.location.replace("driver-login.html");
+});
 centerDriverButton.addEventListener("click", () => {
     if (lastDriverLocation && map) map.setView([Number(lastDriverLocation.latitude), Number(lastDriverLocation.longitude)], 16);
 });

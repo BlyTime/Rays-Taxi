@@ -402,6 +402,10 @@ white-space:nowrap;
 background:#00b050;
 }
 
+.logout-button{
+background:#9f2c2c;
+}
+
 .dashboard-map-panel{
 position:relative;
 margin-top:16px;

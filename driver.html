@@ -25,15 +25,14 @@
             <h1>🚖 Ray's Taxi Driver</h1>
             <p id="mapStatus" class="dashboard-map-status">Loading driver dashboard…</p>
         </div>
-        <div class="device-mode-controls" aria-label="This device's role">
-            <button id="displayModeButton" class="device-mode" type="button">🖥️ Display only</button>
-            <button id="shareGpsButton" class="device-mode" type="button">📡 Share GPS</button>
+        <div class="device-mode-controls">
+            <button id="logoutButton" class="device-mode logout-button" type="button">↪ Log out</button>
         </div>
     </header>
 
     <section class="dashboard-map-panel">
         <div id="driverMap" aria-label="Live pickup map"></div>
-        <p class="map-note">Pins appear before acceptance. Card and pin colours match.</p>
+        <p class="map-note">Pins appear before acceptance. GPS comes from the BLY RIDE Beacon app.</p>
         <button id="centerDriver" class="center-driver" type="button">📍 My location</button>
     </section>
 
