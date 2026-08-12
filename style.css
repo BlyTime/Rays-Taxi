@@ -224,6 +224,26 @@ background:#00b050;
 color:white;
 }
 
+.service-notice{
+margin:18px 0 2px;
+padding:12px 14px;
+border-radius:12px;
+background:#304259;
+border-left:5px solid #fdd017;
+text-align:left;
+}
+
+.service-notice-closed{
+background:#4a2429;
+border-left-color:#ff5c5c;
+}
+
+.service-notice p{
+margin:5px 0 0;
+font-size:14px;
+color:#ffffff;
+}
+
 .ride-status{
 padding-top:8px;
 }
@@ -714,6 +734,63 @@ text-decoration:none;
 white-space:nowrap;
 }
 
+/* Driver-controlled, public booking-page status. */
+.service-control{
+display:grid;
+grid-template-columns:1fr auto;
+gap:10px 16px;
+margin:0 0 16px;
+padding:16px;
+border-radius:14px;
+background:#1d2939;
+}
+
+.service-control h2,
+.service-control p{
+margin:0;
+}
+
+.service-control p{
+font-size:13px;
+}
+
+.service-availability{
+display:flex;
+align-items:center;
+gap:8px;
+font-weight:bold;
+white-space:nowrap;
+}
+
+.service-availability input{
+width:auto;
+margin:0;
+accent-color:#00b050;
+}
+
+.service-control textarea{
+grid-column:1 / -1;
+box-sizing:border-box;
+width:100%;
+resize:vertical;
+min-height:64px;
+padding:12px;
+border:0;
+border-radius:10px;
+font:inherit;
+}
+
+.save-service-status{
+width:auto;
+margin:0;
+padding:12px 14px;
+background:#fdd017;
+}
+
+.service-status-saved{
+align-self:center;
+}
+
 /* Private driving screen: anonymous request dots and manual corner-pickup trip meter. */
 .drive-mode-layout{
 max-width:1100px;
@@ -858,4 +935,6 @@ color:#fdd017;
 .request-footer .ride-step{ width:100%; }
 .manual-trip-card{ align-items:stretch; flex-direction:column; }
 .manual-trip-start{ width:100%; }
+.service-control{ grid-template-columns:1fr; }
+.service-availability{ justify-content:flex-start; }
 }

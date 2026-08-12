@@ -7,6 +7,10 @@ const requestsRef = ref(database, "requests");
 const mapStatus = document.getElementById("mapStatus");
 const logoutButton = document.getElementById("logoutButton");
 const centerDriverButton = document.getElementById("centerDriver");
+const serviceAvailableInput = document.getElementById("serviceAvailable");
+const serviceMessageInput = document.getElementById("serviceMessage");
+const saveServiceStatusButton = document.getElementById("saveServiceStatus");
+const serviceStatusSaved = document.getElementById("serviceStatusSaved");
 
 const MAP_VISIBLE_STATUSES = new Set(["waiting", "accepted", "en route", "arrived"]);
 const PIN_COLOURS = ["#f26b38", "#2b83c6", "#8c5bd8", "#d95374", "#00a878", "#e29b17"];
@@ -19,6 +23,7 @@ let lastDashboardSignature = "";
 let currentDriverProfile = null;
 let stopWatchingDriverProfile = null;
 let stopWatchingDriverLocation = null;
+let stopWatchingServiceStatus = null;
 
 let map;
 let driverMarker;
@@ -289,6 +294,15 @@ function watchDriverLiveLocation() {
     });
 }
 
+function watchServiceStatus() {
+    stopWatchingServiceStatus?.();
+    stopWatchingServiceStatus = onValue(ref(database, "serviceStatus"), (snapshot) => {
+        const saved = snapshot.val() || {};
+        serviceAvailableInput.checked = saved.isAvailable !== false;
+        serviceMessageInput.value = String(saved.message || "");
+    });
+}
+
 onAuthStateChanged(auth, (user) => {
     if (!user || user.isAnonymous) {
         requestList.innerHTML = '<p>Driver sign-in is required. <a class="map-page-link" href="driver-login.html">Sign in as driver</a></p>';
@@ -297,7 +311,27 @@ onAuthStateChanged(auth, (user) => {
     }
     watchDriverProfile(user);
     watchDriverLiveLocation();
+    watchServiceStatus();
     startDashboard();
+});
+
+saveServiceStatusButton.addEventListener("click", async () => {
+    saveServiceStatusButton.disabled = true;
+    serviceStatusSaved.textContent = "Saving…";
+    try {
+        await update(ref(database, "serviceStatus"), {
+            isAvailable: serviceAvailableInput.checked,
+            message: serviceMessageInput.value.trim(),
+            updatedAt: new Date().toISOString(),
+            updatedBy: auth.currentUser.uid
+        });
+        serviceStatusSaved.textContent = "✓ Customer page updated";
+    } catch (error) {
+        console.error("Could not save service status:", error);
+        serviceStatusSaved.textContent = "Could not save. Check Firebase rules.";
+    } finally {
+        saveServiceStatusButton.disabled = false;
+    }
 });
 
 requestsDiv.addEventListener("click", async (event) => {

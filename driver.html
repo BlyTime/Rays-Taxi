@@ -32,6 +32,20 @@
         </div>
     </header>
 
+    <section class="service-control" aria-label="Customer service message">
+        <div>
+            <h2>📣 Customer status</h2>
+            <p>Short update shown on the booking page.</p>
+        </div>
+        <label class="service-availability">
+            <input id="serviceAvailable" type="checkbox" checked>
+            Taking requests
+        </label>
+        <textarea id="serviceMessage" maxlength="140" rows="2" placeholder="Example: 🚕 Out on charter until 4 PM"></textarea>
+        <button id="saveServiceStatus" class="save-service-status" type="button">Save customer status</button>
+        <p id="serviceStatusSaved" class="service-status-saved" aria-live="polite"></p>
+    </section>
+
     <section class="dashboard-map-panel">
         <div id="driverMap" aria-label="Live pickup map"></div>
         <p class="map-note">Pins appear before acceptance. GPS comes from the BLY RIDE Beacon app.</p>

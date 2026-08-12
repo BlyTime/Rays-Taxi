@@ -23,6 +23,9 @@ const REQUEST_TIMEOUT_MINUTES = 15;
 
 const nameInput = document.getElementById("customerName");
 const phoneInput = document.getElementById("phoneNumber");
+const serviceNotice = document.getElementById("serviceNotice");
+const serviceNoticeTitle = document.getElementById("serviceNoticeTitle");
+const serviceNoticeMessage = document.getElementById("serviceNoticeMessage");
 
 nameInput.addEventListener("input", function () {
     this.value = this.value.replace(/[^a-zA-ZÀ-ÿ\s'-]/g, "");
@@ -44,6 +47,7 @@ let customerMap;
 let pickupMarker;
 let taxiMarker;
 let hasCenteredTrackingMap = false;
+let taxiServiceAvailable = true;
 
 const taxiIcon = window.L ? L.icon({
     iconUrl: "taxi-ipsum.png",
@@ -56,6 +60,38 @@ async function ensurePassengerAuth() {
 
     const credential = await signInAnonymously(auth);
     return credential.user;
+}
+
+function showServiceStatus(savedStatus) {
+    const status = savedStatus || {};
+    taxiServiceAvailable = status.isAvailable !== false;
+    const message = String(status.message || "").trim();
+
+    serviceNotice.hidden = taxiServiceAvailable && !message;
+    if (serviceNotice.hidden) return;
+
+    serviceNotice.classList.toggle("service-notice-closed", !taxiServiceAvailable);
+    serviceNoticeTitle.textContent = taxiServiceAvailable ? "🚕 Service update" : "⛔ Rides unavailable";
+    serviceNoticeMessage.textContent = message || "Ray's Taxi is not taking new ride requests right now.";
+    updateBookingAvailability();
+}
+
+function updateBookingAvailability() {
+    if (taxiServiceAvailable) {
+        if (latitude && longitude) {
+            button.disabled = false;
+            button.hidden = false;
+            button.textContent = "🚖 Request Taxi";
+            locationButton.hidden = true;
+        }
+        return;
+    }
+    button.disabled = true;
+    button.hidden = false;
+    button.textContent = "⛔ Rides unavailable";
+    locationButton.hidden = true;
+    status.style.color = "#ffb3b3";
+    status.textContent = "Please check the service update above and try again later.";
 }
 
 function showRideStatus(request) {
@@ -265,6 +301,10 @@ function startNewRequest() {
     locationButton.textContent = "📍 Enable location";
     status.style.color = "white";
     status.textContent = "Tap “Enable location” to continue.";
+    if (!taxiServiceAvailable) {
+        updateBookingAvailability();
+        return;
+    }
     prepareLocation();
 }
 
@@ -326,12 +366,16 @@ function success(position) {
     status.style.color = gpsColor;
     status.innerHTML = `<b>GPS Signal: ${gpsStatus}</b><br><br>Accuracy: <b>${accuracy} meters</b>`;
     locationButton.hidden = true;
-    button.disabled = false;
+    button.disabled = !taxiServiceAvailable;
     button.hidden = false;
-    button.textContent = "🚖 Request Taxi";
+    button.textContent = taxiServiceAvailable ? "🚖 Request Taxi" : "⛔ Rides unavailable";
 }
 
 async function sendRequest() {
+    if (!taxiServiceAvailable) {
+        alert("Ray's Taxi is not taking new requests right now.");
+        return;
+    }
     let passenger = nameInput.value.trim().replace(/[^a-zA-ZÀ-ÿ\s'-]/g, "");
     const countryCode = document.getElementById("countryCode").value;
     let phoneNumber = phoneInput.value.trim().replace(/\D/g, "");
@@ -424,6 +468,7 @@ centerDriverButton.addEventListener("click", () => {
 });
 
 const savedRequestId = localStorage.getItem(savedRequestKey);
+onValue(ref(database, "serviceStatus"), (snapshot) => showServiceStatus(snapshot.val()));
 if (savedRequestId) {
     watchRide(savedRequestId);
 } else {
