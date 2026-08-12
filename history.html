@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BLY RIDE Ride History</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="driver-manifest.webmanifest">
+    <link rel="apple-touch-icon" href="pwa-icon-192.png">
+    <meta name="theme-color" content="#101820">
+</head>
+<body class="driver-page">
+    <main class="history-layout">
+        <header class="history-header">
+            <div>
+                <a class="back-link" href="driver.html">← Dashboard</a>
+                <h1>📋 Ride history</h1>
+                <p id="historySummary">Loading your ride records…</p>
+            </div>
+        </header>
+        <section id="historyList" class="history-list"></section>
+    </main>
+    <script type="module" src="history.js"></script>
+    <script src="pwa.js"></script>
+</body>
+</html>

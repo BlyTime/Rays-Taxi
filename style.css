@@ -413,6 +413,13 @@ text-decoration:none;
 background:#2b83c6;
 }
 
+.history-link{
+display:inline-flex;
+align-items:center;
+text-decoration:none;
+background:#6a3fa0;
+}
+
 .dashboard-map-panel{
 position:relative;
 margin-top:16px;
@@ -777,6 +784,68 @@ white-space:nowrap;
 
 .manual-trip-stop{
 background:#9f2c2c;
+}
+
+/* Completed/cancelled ride records */
+.history-layout{
+max-width:900px;
+margin:0 auto;
+padding:24px 16px 40px;
+}
+
+.history-header h1{
+margin:12px 0 6px;
+}
+
+.history-header p{
+margin:0;
+}
+
+.history-list{
+margin-top:20px;
+}
+
+.history-card{
+margin-top:12px;
+padding:16px;
+border-radius:14px;
+background:#1d2939;
+border-left:6px solid #4c5a64;
+}
+
+.history-cancelled,
+.history-timed-out{
+border-left-color:#9f2c2c;
+}
+
+.history-card-top{
+display:flex;
+align-items:center;
+justify-content:space-between;
+gap:12px;
+}
+
+.history-card h2{
+margin:0;
+font-size:20px;
+}
+
+.history-card > p{
+margin:9px 0 0;
+color:#c7c7c7;
+}
+
+.history-details{
+display:flex;
+flex-wrap:wrap;
+gap:8px 18px;
+margin-top:12px;
+font-size:14px;
+color:#c7c7c7;
+}
+
+.history-details strong{
+color:#fdd017;
 }
 
 @media (max-width:480px){
