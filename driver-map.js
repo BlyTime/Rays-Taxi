@@ -18,6 +18,7 @@ const taxiIcon = L.icon({ iconUrl: "taxi-ipsum.png", iconSize: [70, 47], iconAnc
 let driverMarker;
 let driverLocation;
 let manualTrip = { active: false, distanceKm: 0 };
+let currentDriverId;
 
 function validLocation(location) {
     return Number.isFinite(Number(location?.latitude)) && Number.isFinite(Number(location?.longitude));
@@ -75,18 +76,26 @@ onAuthStateChanged(auth, (user) => {
         driveStatus.textContent = "🔒 Driver sign-in required";
         return;
     }
-    onValue(ref(database, "drivers/ray/liveLocation"), (snapshot) => showDriverLocation(snapshot.val()));
-    onValue(ref(database, "drivers/ray/manualTrip"), (snapshot) => renderManualTrip(snapshot.val()));
-    onValue(ref(database, "requests"), (snapshot) => renderRequestDots(snapshot.val()));
+    onValue(ref(database, `driverAccounts/${user.uid}`), (snapshot) => {
+        currentDriverId = snapshot.val()?.driverId;
+        if (!currentDriverId) {
+            driveStatus.textContent = "🔒 Driver account setup required";
+            return;
+        }
+        onValue(ref(database, `drivers/${currentDriverId}/liveLocation`), (locationSnapshot) => showDriverLocation(locationSnapshot.val()));
+        onValue(ref(database, `drivers/${currentDriverId}/manualTrip`), (tripSnapshot) => renderManualTrip(tripSnapshot.val()));
+        onValue(ref(database, "requests"), (requestsSnapshot) => renderRequestDots(requestsSnapshot.val()));
+    });
 });
 
 manualTripButton.addEventListener("click", async () => {
     manualTripButton.disabled = true;
     try {
+        if (!currentDriverId) throw new Error("Driver account setup required");
         if (manualTrip.active) {
-            await update(ref(database, "drivers/ray/manualTrip"), { active: false, completedAt: new Date().toISOString() });
+            await update(ref(database, `drivers/${currentDriverId}/manualTrip`), { active: false, completedAt: new Date().toISOString() });
         } else {
-            await update(ref(database, "drivers/ray/manualTrip"), { active: true, distanceKm: 0, startedAt: new Date().toISOString(), completedAt: null });
+            await update(ref(database, `drivers/${currentDriverId}/manualTrip`), { active: true, distanceKm: 0, startedAt: new Date().toISOString(), completedAt: null });
         }
     } catch (error) {
         console.error("Could not update manual trip:", error);

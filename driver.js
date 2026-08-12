@@ -1,4 +1,4 @@
-import { database, auth, ref, onValue, onAuthStateChanged, update, signOut } from "./firebase.js";
+import { database, auth, ref, onValue, onAuthStateChanged, update, runTransaction, signOut } from "./firebase.js";
 import { getDefaultDriverProfile, normaliseDriverProfile } from "./driver-profiles.js";
 
 const requestsDiv = document.getElementById("requests");
@@ -24,6 +24,8 @@ let currentDriverProfile = null;
 let stopWatchingDriverProfile = null;
 let stopWatchingDriverLocation = null;
 let stopWatchingServiceStatus = null;
+let stopWatchingDriverAccount = null;
+let currentDriverAccount = null;
 
 let map;
 let driverMarker;
@@ -119,6 +121,9 @@ function renderRequests(data, newRequestIds = new Set()) {
     }
 
     requestList.innerHTML = Object.entries(data)
+        .filter(([, request]) => currentDriverAccount?.role === "operator" ||
+            String(request.status || "").toLowerCase() === "waiting" ||
+            request.driverUid === auth.currentUser?.uid)
         .sort(([, a], [, b]) => new Date(b.created || 0) - new Date(a.created || 0))
         .map(([key, request]) => {
             const phone = phoneNumber(request);
@@ -126,7 +131,9 @@ function renderRequests(data, newRequestIds = new Set()) {
             const currentStatus = String(request.status || "Waiting");
             const statusKey = currentStatus.toLowerCase().replace(/\s+/g, "-");
             const expired = requestIsExpired(request);
-            const step = expired ? null : nextRideStep(currentStatus);
+            const belongsToThisDriver = request.driverUid === auth.currentUser?.uid;
+            const canAdvance = currentStatus.toLowerCase() === "waiting" || belongsToThisDriver;
+            const step = expired || !canAdvance ? null : nextRideStep(currentStatus);
             const waitingEndedAt = ["picked up", "completed"].includes(currentStatus.toLowerCase())
                 ? request.pickedUpAt || request.statusUpdatedAt || ""
                 : "";
@@ -160,7 +167,7 @@ function renderRequests(data, newRequestIds = new Set()) {
                             <a class="action ${phone ? "" : "is-disabled"}" href="${phone ? `tel:+${phone}` : "#"}" aria-label="Call passenger" ${phone ? "" : "aria-disabled=\"true\""}>📞</a>
                         </div>
                         <button class="ride-step" type="button" data-request-id="${escapeHtml(key)}" data-next-status="${step ? step.nextStatus : ""}" data-timestamp-field="${step ? step.timestamp : ""}" ${step ? "" : "disabled"}>
-                            ${step ? step.label : expired ? "⌛ Request timed out" : currentStatus.toLowerCase() === "cancelled" ? "✕ Request cancelled" : "✓ Ride completed"}
+                            ${step ? step.label : expired ? "⌛ Request timed out" : currentStatus.toLowerCase() === "cancelled" ? "✕ Request cancelled" : belongsToThisDriver ? "✓ Ride completed" : "🚕 Taken by another driver"}
                         </button>
                     </div>
                 </article>`;
@@ -273,12 +280,12 @@ function startDashboard() {
 
 function watchDriverProfile(user) {
     stopWatchingDriverProfile?.();
-    const profileRef = ref(database, "drivers/ray/profile");
+    const profileRef = ref(database, `drivers/${currentDriverAccount.driverId}/profile`);
     stopWatchingDriverProfile = onValue(profileRef, (snapshot) => {
         const savedProfile = snapshot.val();
         currentDriverProfile = normaliseDriverProfile(savedProfile, user.uid);
         if (!savedProfile) {
-            update(ref(database, "drivers/ray"), { profile: currentDriverProfile })
+            update(ref(database, `drivers/${currentDriverAccount.driverId}`), { profile: currentDriverProfile })
                 .catch((error) => console.error("Could not create driver profile:", error));
         }
     });
@@ -286,7 +293,7 @@ function watchDriverProfile(user) {
 
 function watchDriverLiveLocation() {
     stopWatchingDriverLocation?.();
-    stopWatchingDriverLocation = onValue(ref(database, "drivers/ray/liveLocation"), (snapshot) => {
+    stopWatchingDriverLocation = onValue(ref(database, `drivers/${currentDriverAccount.driverId}/liveLocation`), (snapshot) => {
         const sharedLocation = snapshot.val();
         if (!validDriverLocation(sharedLocation)) return;
         lastDriverLocation = sharedLocation;
@@ -309,13 +316,25 @@ onAuthStateChanged(auth, (user) => {
         mapStatus.textContent = "🔒 Driver sign-in required";
         return;
     }
-    watchDriverProfile(user);
-    watchDriverLiveLocation();
-    watchServiceStatus();
-    startDashboard();
+    stopWatchingDriverAccount?.();
+    stopWatchingDriverAccount = onValue(ref(database, `driverAccounts/${user.uid}`), (snapshot) => {
+        const account = snapshot.val();
+        if (!account?.driverId) {
+            requestList.innerHTML = "<p>This sign-in has not been added as a BLY RIDE driver yet.</p>";
+            mapStatus.textContent = "🔒 Driver account setup required";
+            return;
+        }
+        currentDriverAccount = { driverId: String(account.driverId), role: account.role === "operator" ? "operator" : "driver" };
+        watchDriverProfile(user);
+        watchDriverLiveLocation();
+        if (currentDriverAccount.role === "operator") watchServiceStatus();
+        else document.querySelector(".service-control").hidden = true;
+        startDashboard();
+    });
 });
 
 saveServiceStatusButton.addEventListener("click", async () => {
+    if (currentDriverAccount?.role !== "operator") return;
     saveServiceStatusButton.disabled = true;
     serviceStatusSaved.textContent = "Saving…";
     try {
@@ -352,17 +371,20 @@ requestsDiv.addEventListener("click", async (event) => {
 
     try {
         const timestamp = new Date().toISOString();
-        const changes = { status: button.dataset.nextStatus, [button.dataset.timestampField]: timestamp, statusUpdatedAt: timestamp };
+        const requestRef = ref(database, `requests/${button.dataset.requestId}`);
         if (button.dataset.nextStatus === "Accepted") {
-            changes.driverUid = auth.currentUser.uid;
-            changes.driverId = "ray";
             const { driverUid, ...profileForCustomer } = currentDriverProfile || getDefaultDriverProfile(auth.currentUser.uid);
-            changes.driverProfile = profileForCustomer;
+            const result = await runTransaction(requestRef, (request) => {
+                if (!request || String(request.status || "").toLowerCase() !== "waiting") return;
+                return { ...request, status: "Accepted", acceptedAt: timestamp, statusUpdatedAt: timestamp,
+                    driverUid: auth.currentUser.uid, driverId: currentDriverAccount.driverId, driverProfile: profileForCustomer };
+            });
+            if (!result.committed) alert("Another driver accepted this request first.");
+        } else {
+            const changes = { status: button.dataset.nextStatus, [button.dataset.timestampField]: timestamp, statusUpdatedAt: timestamp };
+            if (button.dataset.nextStatus === "Picked up") changes.driverLocation = null;
+            await update(requestRef, changes);
         }
-        if (button.dataset.nextStatus === "Picked up") {
-            changes.driverLocation = null;
-        }
-        await update(ref(database, `requests/${button.dataset.requestId}`), changes);
     } catch (error) {
         console.error("Could not update ride status:", error);
         button.disabled = false;
