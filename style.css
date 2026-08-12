@@ -230,12 +230,14 @@ padding:12px 14px;
 border-radius:12px;
 background:#304259;
 border-left:5px solid #fdd017;
-text-align:left;
+border-right:5px solid #fdd017;
+text-align:center;
 }
 
 .service-notice-closed{
 background:#4a2429;
 border-left-color:#ff5c5c;
+border-right-color:#ff5c5c;
 }
 
 .service-notice p{
