@@ -14,7 +14,6 @@ const serviceStatusSaved = document.getElementById("serviceStatusSaved");
 
 const MAP_VISIBLE_STATUSES = new Set(["waiting", "accepted", "en route", "arrived"]);
 const PIN_COLOURS = ["#f26b38", "#2b83c6", "#8c5bd8", "#d95374", "#00a878", "#e29b17"];
-const DRIVER_COLOURS = ["#1677ff", "#e5484d", "#00a878", "#8c5bd8", "#e29b17", "#d95374"];
 
 let knownRequestIds = null;
 let alertsEnabled = false;
@@ -44,12 +43,6 @@ function requestColour(requestId) {
     let hash = 0;
     for (const character of String(requestId)) hash = ((hash << 5) - hash) + character.charCodeAt(0);
     return PIN_COLOURS[Math.abs(hash) % PIN_COLOURS.length];
-}
-
-function driverColour(driverId) {
-    let hash = 0;
-    for (const character of String(driverId)) hash = ((hash << 5) - hash) + character.charCodeAt(0);
-    return DRIVER_COLOURS[Math.abs(hash) % DRIVER_COLOURS.length];
 }
 
 function phoneNumber(request) {
@@ -192,26 +185,13 @@ function initMap() {
     window.addEventListener("resize", () => map.invalidateSize());
 }
 
-function showDriverMarker(driverId, location, driverName = driverId) {
+function showDriverMarker(driverId, location, driverName = driverId, mapIcon = "taxi-ipsum.png") {
     if (!map || !validDriverLocation(location)) return;
     const point = [Number(location.latitude), Number(location.longitude)];
     const name = String(driverName || driverId || "Driver");
-    const colour = driverColour(driverId);
     const taxiIcon = L.divIcon({
         className: "fleet-driver-icon",
-        html: `<span class="fleet-driver-car" style="--driver-colour:${colour}" aria-hidden="true">
-            <svg viewBox="0 0 64 44" focusable="false">
-                <path class="taxi-sign" d="M25 3h14l3 8H22z"/>
-                <path class="taxi-body" d="M10 23l6-13c1-2 3-3 5-3h22c2 0 4 1 5 3l6 13 5 5v10H5V28z"/>
-                <path class="taxi-window" d="M20 11h24l5 12H15z"/>
-                <path class="taxi-divider" d="M32 11v12"/>
-                <circle class="taxi-light" cx="14" cy="30" r="3"/>
-                <circle class="taxi-light" cx="50" cy="30" r="3"/>
-                <path class="taxi-bumper" d="M11 37h42"/>
-                <circle class="taxi-wheel" cx="16" cy="39" r="5"/>
-                <circle class="taxi-wheel" cx="48" cy="39" r="5"/>
-            </svg>
-        </span><span class="fleet-driver-name">${escapeHtml(name)}</span>`,
+        html: `<img class="fleet-driver-car" src="${escapeHtml(mapIcon)}" alt=""><span class="fleet-driver-name">${escapeHtml(name)}</span>`,
         iconSize: [96, 64],
         iconAnchor: [48, 32]
     });
@@ -235,8 +215,11 @@ function renderDriverMarkers(drivers) {
             driverMarkers.delete(driverId);
         }
     });
-    visibleDrivers.forEach(([driverId, driver]) => {
-        showDriverMarker(driverId, driver.liveLocation, driver.profile?.driverName || driver.name || driverId);
+    visibleDrivers.forEach(([driverId, driver], index) => {
+        const name = driver.profile?.driverName || driver.name || driverId;
+        const isDenzel = /denzel/i.test(`${driverId} ${name}`);
+        const fallbackIcon = isDenzel || index > 0 ? "2nd_drive.png" : "taxi-ipsum.png";
+        showDriverMarker(driverId, driver.liveLocation, name, driver.profile?.mapIcon || fallbackIcon);
     });
 }
 
@@ -333,7 +316,12 @@ function watchDriverLiveLocation() {
         const sharedLocation = snapshot.val();
         if (!validDriverLocation(sharedLocation)) return;
         lastDriverLocation = sharedLocation;
-        showDriverMarker(currentDriverAccount.driverId, sharedLocation, currentDriverProfile?.driverName || currentDriverAccount.driverId);
+        showDriverMarker(
+            currentDriverAccount.driverId,
+            sharedLocation,
+            currentDriverProfile?.driverName || currentDriverAccount.driverId,
+            currentDriverProfile?.mapIcon || (/denzel/i.test(`${currentDriverAccount.driverId} ${currentDriverProfile?.driverName || ""}`) ? "2nd_drive.png" : "taxi-ipsum.png")
+        );
     });
 }
 
