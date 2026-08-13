@@ -452,6 +452,78 @@ height:min(48vh, 480px);
 min-height:300px;
 }
 
+.fleet-driver-icon{
+background:transparent;
+border:0;
+text-align:center;
+}
+
+.fleet-driver-car{
+display:inline-block;
+width:58px;
+height:42px;
+filter:drop-shadow(0 3px 3px rgba(0,0,0,.5));
+}
+
+.fleet-driver-car svg{
+display:block;
+width:100%;
+height:100%;
+overflow:visible;
+}
+
+.taxi-body,
+.taxi-sign{
+fill:var(--driver-colour);
+stroke:#fff;
+stroke-width:2;
+stroke-linejoin:round;
+}
+
+.taxi-window{
+fill:#dff4ff;
+stroke:#101820;
+stroke-width:1.5;
+}
+
+.taxi-divider,
+.taxi-bumper{
+fill:none;
+stroke:#101820;
+stroke-width:2;
+}
+
+.taxi-light{
+fill:#fdd017;
+stroke:#101820;
+stroke-width:1;
+}
+
+.taxi-wheel{
+fill:#101820;
+stroke:#fff;
+stroke-width:1.5;
+}
+
+.fleet-driver-name{
+display:block;
+width:max-content;
+max-width:110px;
+margin:2px 0 0 50%;
+padding:2px 7px;
+transform:translateX(-50%);
+overflow:hidden;
+border-radius:999px;
+background:#101820;
+color:#fff;
+box-shadow:0 2px 7px rgba(0,0,0,.4);
+font-size:12px;
+font-weight:700;
+line-height:17px;
+text-overflow:ellipsis;
+white-space:nowrap;
+}
+
 .map-note{
 margin:9px 0 0;
 font-size:13px;

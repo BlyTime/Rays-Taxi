@@ -14,6 +14,7 @@ const serviceStatusSaved = document.getElementById("serviceStatusSaved");
 
 const MAP_VISIBLE_STATUSES = new Set(["waiting", "accepted", "en route", "arrived"]);
 const PIN_COLOURS = ["#f26b38", "#2b83c6", "#8c5bd8", "#d95374", "#00a878", "#e29b17"];
+const DRIVER_COLOURS = ["#1677ff", "#e5484d", "#00a878", "#8c5bd8", "#e29b17", "#d95374"];
 
 let knownRequestIds = null;
 let alertsEnabled = false;
@@ -28,10 +29,10 @@ let stopWatchingDriverAccount = null;
 let currentDriverAccount = null;
 
 let map;
-let driverMarker;
 let lastDriverLocation;
 let hasSetInitialMapView = false;
 const pickupMarkers = new Map();
+const driverMarkers = new Map();
 
 function escapeHtml(value) {
     const element = document.createElement("div");
@@ -43,6 +44,12 @@ function requestColour(requestId) {
     let hash = 0;
     for (const character of String(requestId)) hash = ((hash << 5) - hash) + character.charCodeAt(0);
     return PIN_COLOURS[Math.abs(hash) % PIN_COLOURS.length];
+}
+
+function driverColour(driverId) {
+    let hash = 0;
+    for (const character of String(driverId)) hash = ((hash << 5) - hash) + character.charCodeAt(0);
+    return DRIVER_COLOURS[Math.abs(hash) % DRIVER_COLOURS.length];
 }
 
 function phoneNumber(request) {
@@ -185,15 +192,52 @@ function initMap() {
     window.addEventListener("resize", () => map.invalidateSize());
 }
 
-function showDriverMarker(location) {
+function showDriverMarker(driverId, location, driverName = driverId) {
     if (!map || !validDriverLocation(location)) return;
     const point = [Number(location.latitude), Number(location.longitude)];
-    const taxiIcon = L.icon({ iconUrl: "taxi-ipsum.png", iconSize: [70, 47], iconAnchor: [35, 24] });
-    if (!driverMarker) {
-        driverMarker = L.marker(point, { icon: taxiIcon, zIndexOffset: 1000 }).addTo(map).bindPopup("🚕 Your taxi");
+    const name = String(driverName || driverId || "Driver");
+    const colour = driverColour(driverId);
+    const taxiIcon = L.divIcon({
+        className: "fleet-driver-icon",
+        html: `<span class="fleet-driver-car" style="--driver-colour:${colour}" aria-hidden="true">
+            <svg viewBox="0 0 64 44" focusable="false">
+                <path class="taxi-sign" d="M25 3h14l3 8H22z"/>
+                <path class="taxi-body" d="M10 23l6-13c1-2 3-3 5-3h22c2 0 4 1 5 3l6 13 5 5v10H5V28z"/>
+                <path class="taxi-window" d="M20 11h24l5 12H15z"/>
+                <path class="taxi-divider" d="M32 11v12"/>
+                <circle class="taxi-light" cx="14" cy="30" r="3"/>
+                <circle class="taxi-light" cx="50" cy="30" r="3"/>
+                <path class="taxi-bumper" d="M11 37h42"/>
+                <circle class="taxi-wheel" cx="16" cy="39" r="5"/>
+                <circle class="taxi-wheel" cx="48" cy="39" r="5"/>
+            </svg>
+        </span><span class="fleet-driver-name">${escapeHtml(name)}</span>`,
+        iconSize: [96, 64],
+        iconAnchor: [48, 32]
+    });
+    let marker = driverMarkers.get(driverId);
+    if (!marker) {
+        marker = L.marker(point, { icon: taxiIcon, zIndexOffset: 1000 }).addTo(map);
+        driverMarkers.set(driverId, marker);
     } else {
-        driverMarker.setLatLng(point);
+        marker.setLatLng(point);
+        marker.setIcon(taxiIcon);
     }
+    marker.bindPopup(`<strong>🚕 ${escapeHtml(name)}</strong>`);
+}
+
+function renderDriverMarkers(drivers) {
+    const visibleDrivers = Object.entries(drivers || {}).filter(([, driver]) => validDriverLocation(driver?.liveLocation));
+    const visibleIds = new Set(visibleDrivers.map(([driverId]) => driverId));
+    driverMarkers.forEach((marker, driverId) => {
+        if (!visibleIds.has(driverId)) {
+            map.removeLayer(marker);
+            driverMarkers.delete(driverId);
+        }
+    });
+    visibleDrivers.forEach(([driverId, driver]) => {
+        showDriverMarker(driverId, driver.liveLocation, driver.profile?.driverName || driver.name || driverId);
+    });
 }
 
 function updateMap(data) {
@@ -224,18 +268,8 @@ function updateMap(data) {
         marker.bindPopup(`<strong>${escapeHtml(request.passenger || "Passenger")}</strong><br>${escapeHtml(request.status || "Waiting")}<br><a href="${directionsUrl(request)}" target="_blank" rel="noopener">Navigate</a>`);
     });
 
-    const sharedLocation = Object.values(data || {})
-        .map((request) => request.driverLocation)
-        .filter(validDriverLocation)
-        .sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0))[0];
-    if (sharedLocation) {
-        lastDriverLocation = sharedLocation;
-        showDriverMarker(sharedLocation);
-    }
-
     if (!hasSetInitialMapView && mapRequests.length) {
         const bounds = L.latLngBounds(mapRequests.map(([, request]) => [Number(request.latitude), Number(request.longitude)]));
-        if (sharedLocation) bounds.extend([Number(sharedLocation.latitude), Number(sharedLocation.longitude)]);
         map.fitBounds(bounds, { padding: [28, 28], maxZoom: 15 });
         hasSetInitialMapView = true;
     }
@@ -260,6 +294,8 @@ function startDashboard() {
     dashboardStarted = true;
     initMap();
     mapStatus.textContent = "🖥️ Dispatch view · GPS supplied by BLY RIDE Beacon";
+
+    onValue(ref(database, "drivers"), (snapshot) => renderDriverMarkers(snapshot.val()));
 
     onValue(requestsRef, (snapshot) => {
         const data = snapshot.val() || {};
@@ -297,7 +333,7 @@ function watchDriverLiveLocation() {
         const sharedLocation = snapshot.val();
         if (!validDriverLocation(sharedLocation)) return;
         lastDriverLocation = sharedLocation;
-        showDriverMarker(sharedLocation);
+        showDriverMarker(currentDriverAccount.driverId, sharedLocation, currentDriverProfile?.driverName || currentDriverAccount.driverId);
     });
 }
 
