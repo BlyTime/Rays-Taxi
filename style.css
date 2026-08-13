@@ -706,6 +706,12 @@ color:white;
 white-space:nowrap;
 }
 
+.center-driver.follow-paused,
+.center-customer-driver.follow-paused{
+background:#fdd017;
+color:#101820;
+}
+
 #driverMap{
 height:min(58vh, 560px);
 min-height:360px;

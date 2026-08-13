@@ -1,4 +1,4 @@
-const CACHE_NAME = "rays-taxi-v16";
+const CACHE_NAME = "rays-taxi-v17-auto-follow";
 const APP_SHELL = [
     "./",
     "./index.html",

@@ -17,6 +17,8 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
 const taxiIcon = L.icon({ iconUrl: "taxi-ipsum.png", iconSize: [70, 47], iconAnchor: [35, 24] });
 let driverMarker;
 let driverLocation;
+let autoFollowDriver = true;
+let hasFollowedDriver = false;
 let manualTrip = { active: false, distanceKm: 0 };
 let currentDriverId;
 
@@ -36,7 +38,19 @@ function showDriverLocation(location) {
     const point = [Number(location.latitude), Number(location.longitude)];
     if (!driverMarker) driverMarker = L.marker(point, { icon: taxiIcon, zIndexOffset: 1000 }).addTo(map);
     else driverMarker.setLatLng(point);
+    if (autoFollowDriver) {
+        if (!hasFollowedDriver) map.setView(point, 16);
+        else map.panTo(point, { animate: true, duration: 0.7 });
+        hasFollowedDriver = true;
+    }
     driveStatus.textContent = `📡 Beacon GPS · accuracy ${Math.round(Number(location.accuracy) || 0)} m`;
+}
+
+function setDriverFollow(enabled) {
+    autoFollowDriver = enabled;
+    centerDriverButton.textContent = enabled ? "✓ Following taxi" : "📍 Resume follow";
+    centerDriverButton.classList.toggle("follow-paused", !enabled);
+    centerDriverButton.setAttribute("aria-pressed", String(enabled));
 }
 
 function renderRequestDots(data) {
@@ -106,8 +120,14 @@ manualTripButton.addEventListener("click", async () => {
 });
 
 centerDriverButton.addEventListener("click", () => {
-    if (validLocation(driverLocation)) map.setView([Number(driverLocation.latitude), Number(driverLocation.longitude)], 16);
+    setDriverFollow(true);
+    if (validLocation(driverLocation)) {
+        map.setView([Number(driverLocation.latitude), Number(driverLocation.longitude)], 16);
+        hasFollowedDriver = true;
+    }
 });
 
+map.on("dragstart", () => setDriverFollow(false));
+setDriverFollow(true);
 setTimeout(() => map.invalidateSize(), 300);
 window.addEventListener("resize", () => map.invalidateSize());

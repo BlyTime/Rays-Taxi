@@ -47,6 +47,7 @@ let customerMap;
 let pickupMarker;
 let taxiMarker;
 let hasCenteredTrackingMap = false;
+let autoFollowCustomerTaxi = true;
 let taxiServiceAvailable = true;
 
 const taxiIcon = window.L ? L.icon({
@@ -143,6 +144,13 @@ function validMapPoint(point) {
         Number.isFinite(Number(point?.longitude));
 }
 
+function setCustomerTaxiFollow(enabled) {
+    autoFollowCustomerTaxi = enabled;
+    centerDriverButton.textContent = enabled ? "✓ Following driver" : "📍 Resume follow";
+    centerDriverButton.classList.toggle("follow-paused", !enabled);
+    centerDriverButton.setAttribute("aria-pressed", String(enabled));
+}
+
 function updateLiveTracking(request, state) {
     const trackingActive = ["en route", "arrived"].includes(state);
     liveTracking.hidden = !trackingActive;
@@ -163,6 +171,7 @@ function updateLiveTracking(request, state) {
             fillColor: "#f26b38",
             fillOpacity: 1
         }).addTo(customerMap).bindPopup("Your pickup point");
+        customerMap.on("dragstart", () => setCustomerTaxiFollow(false));
     }
 
     setTimeout(() => customerMap.invalidateSize(), 0);
@@ -187,6 +196,8 @@ function updateLiveTracking(request, state) {
     if (!hasCenteredTrackingMap) {
         customerMap.fitBounds([pickupPoint, taxiPoint], { padding: [28, 28] });
         hasCenteredTrackingMap = true;
+    } else if (autoFollowCustomerTaxi) {
+        customerMap.panTo(taxiPoint, { animate: true, duration: 0.7 });
     }
 }
 
@@ -294,6 +305,8 @@ function startNewRequest() {
     pickupMarker = null;
     taxiMarker = null;
     hasCenteredTrackingMap = false;
+    autoFollowCustomerTaxi = true;
+    setCustomerTaxiFollow(true);
     button.disabled = true;
     button.hidden = true;
     locationButton.hidden = false;
@@ -462,6 +475,7 @@ cancelRequestButton.addEventListener("click", cancelRequest);
 finishRideButton.addEventListener("click", startNewRequest);
 centerDriverButton.addEventListener("click", () => {
     if (customerMap && taxiMarker) {
+        setCustomerTaxiFollow(true);
         customerMap.setView(taxiMarker.getLatLng(), 16);
         taxiMarker.openPopup();
     }
