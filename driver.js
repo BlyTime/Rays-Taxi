@@ -75,6 +75,12 @@ function validDriverLocation(location) {
     return Number.isFinite(Number(location?.latitude)) && Number.isFinite(Number(location?.longitude));
 }
 
+function driverMapIcon(driverId, profile, fallbackIndex = 0) {
+    if (profile?.mapIcon) return profile.mapIcon;
+    const identity = `${driverId || ""} ${profile?.driverName || ""}`;
+    return /mike|denzel/i.test(identity) || fallbackIndex > 0 ? "2nd_drive.png" : "taxi-ipsum.png";
+}
+
 function nextRideStep(status) {
     const steps = {
         waiting: { label: "🚕 Accept", nextStatus: "Accepted", timestamp: "acceptedAt" },
@@ -217,9 +223,7 @@ function renderDriverMarkers(drivers) {
     });
     visibleDrivers.forEach(([driverId, driver], index) => {
         const name = driver.profile?.driverName || driver.name || driverId;
-        const isDenzel = /denzel/i.test(`${driverId} ${name}`);
-        const fallbackIcon = isDenzel || index > 0 ? "2nd_drive.png" : "taxi-ipsum.png";
-        showDriverMarker(driverId, driver.liveLocation, name, driver.profile?.mapIcon || fallbackIcon);
+        showDriverMarker(driverId, driver.liveLocation, name, driverMapIcon(driverId, driver.profile, index));
     });
 }
 
@@ -320,7 +324,7 @@ function watchDriverLiveLocation() {
             currentDriverAccount.driverId,
             sharedLocation,
             currentDriverProfile?.driverName || currentDriverAccount.driverId,
-            currentDriverProfile?.mapIcon || (/denzel/i.test(`${currentDriverAccount.driverId} ${currentDriverProfile?.driverName || ""}`) ? "2nd_drive.png" : "taxi-ipsum.png")
+            driverMapIcon(currentDriverAccount.driverId, currentDriverProfile)
         );
     });
 }
