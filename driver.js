@@ -75,10 +75,10 @@ function validDriverLocation(location) {
     return Number.isFinite(Number(location?.latitude)) && Number.isFinite(Number(location?.longitude));
 }
 
-function driverMapIcon(driverId, profile, fallbackIndex = 0) {
+function driverMapIcon(driverId, profile) {
     if (profile?.mapIcon) return profile.mapIcon;
     const identity = `${driverId || ""} ${profile?.driverName || ""}`;
-    return /mike|denzel/i.test(identity) || fallbackIndex > 0 ? "2nd_drive.png" : "taxi-ipsum.png";
+    return /mike|denzel/i.test(identity) ? "2nd_drive.png" : "taxi-ipsum.png";
 }
 
 function nextRideStep(status) {
@@ -221,9 +221,9 @@ function renderDriverMarkers(drivers) {
             driverMarkers.delete(driverId);
         }
     });
-    visibleDrivers.forEach(([driverId, driver], index) => {
+    visibleDrivers.forEach(([driverId, driver]) => {
         const name = driver.profile?.driverName || driver.name || driverId;
-        showDriverMarker(driverId, driver.liveLocation, name, driverMapIcon(driverId, driver.profile, index));
+        showDriverMarker(driverId, driver.liveLocation, name, driverMapIcon(driverId, driver.profile));
     });
 }
 

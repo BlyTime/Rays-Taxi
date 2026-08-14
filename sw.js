@@ -1,4 +1,4 @@
-const CACHE_NAME = "rays-taxi-v17-auto-follow";
+const CACHE_NAME = "rays-taxi-v18-driver-icons";
 const APP_SHELL = [
     "./",
     "./index.html",

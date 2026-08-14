@@ -14,7 +14,11 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     attribution: "© OpenStreetMap contributors"
 }).addTo(map);
 
-const taxiIcon = L.icon({ iconUrl: "taxi-ipsum.png", iconSize: [70, 47], iconAnchor: [35, 24] });
+function createTaxiIcon(iconUrl = "taxi-ipsum.png") {
+    return L.icon({ iconUrl, iconSize: [70, 47], iconAnchor: [35, 24] });
+}
+
+let taxiIcon = createTaxiIcon();
 let driverMarker;
 let driverLocation;
 let autoFollowDriver = true;
@@ -44,6 +48,11 @@ function showDriverLocation(location) {
         hasFollowedDriver = true;
     }
     driveStatus.textContent = `📡 Beacon GPS · accuracy ${Math.round(Number(location.accuracy) || 0)} m`;
+}
+
+function showDriverProfile(profile) {
+    taxiIcon = createTaxiIcon(profile?.mapIcon || "taxi-ipsum.png");
+    if (driverMarker) driverMarker.setIcon(taxiIcon);
 }
 
 function setDriverFollow(enabled) {
@@ -96,6 +105,7 @@ onAuthStateChanged(auth, (user) => {
             driveStatus.textContent = "🔒 Driver account setup required";
             return;
         }
+        onValue(ref(database, `drivers/${currentDriverId}/profile`), (profileSnapshot) => showDriverProfile(profileSnapshot.val()));
         onValue(ref(database, `drivers/${currentDriverId}/liveLocation`), (locationSnapshot) => showDriverLocation(locationSnapshot.val()));
         onValue(ref(database, `drivers/${currentDriverId}/manualTrip`), (tripSnapshot) => renderManualTrip(tripSnapshot.val()));
         onValue(ref(database, "requests"), (requestsSnapshot) => renderRequestDots(requestsSnapshot.val()));

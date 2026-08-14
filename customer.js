@@ -50,11 +50,14 @@ let hasCenteredTrackingMap = false;
 let autoFollowCustomerTaxi = true;
 let taxiServiceAvailable = true;
 
-const taxiIcon = window.L ? L.icon({
-    iconUrl: "taxi-ipsum.png",
-    iconSize: [70, 47],
-    iconAnchor: [35, 24]
-}) : null;
+function createTaxiIcon(profile) {
+    if (!window.L) return null;
+    return L.icon({
+        iconUrl: profile?.mapIcon || "taxi-ipsum.png",
+        iconSize: [70, 47],
+        iconAnchor: [35, 24]
+    });
+}
 
 async function ensurePassengerAuth() {
     if (auth.currentUser) return auth.currentUser;
@@ -183,12 +186,14 @@ function updateLiveTracking(request, state) {
     }
 
     const taxiPoint = [Number(request.driverLocation.latitude), Number(request.driverLocation.longitude)];
+    const assignedTaxiIcon = createTaxiIcon(request.driverProfile);
     if (!taxiMarker) {
-        taxiMarker = L.marker(taxiPoint, { icon: taxiIcon })
+        taxiMarker = L.marker(taxiPoint, { icon: assignedTaxiIcon })
             .addTo(customerMap)
             .bindPopup("Your Ray’s Taxi driver");
     } else {
         taxiMarker.setLatLng(taxiPoint);
+        taxiMarker.setIcon(assignedTaxiIcon);
     }
 
     trackingStatus.textContent = "Live driver location is updating.";
