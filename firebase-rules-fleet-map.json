@@ -1,0 +1,27 @@
+{
+  "rules": {
+    "requests": {
+      ".read": "auth != null && root.child('driverAccounts').child(auth.uid).exists()",
+      "$requestId": {
+        ".read": "auth != null && (root.child('driverAccounts').child(auth.uid).exists() || auth.uid === data.child('ownerUid').val())",
+        ".write": "auth != null && (root.child('driverAccounts').child(auth.uid).child('role').val() === 'operator' || (!data.exists() && newData.child('ownerUid').val() === auth.uid && newData.child('status').val() === 'Waiting') || (data.exists() && data.child('ownerUid').val() === auth.uid && data.child('status').val() === 'Waiting' && newData.child('ownerUid').val() === auth.uid && (newData.child('status').val() === 'Waiting' || newData.child('status').val() === 'Cancelled' || newData.child('status').val() === 'Timed out')) || (data.exists() && data.child('status').val() === 'Waiting' && newData.child('status').val() === 'Accepted' && newData.child('driverUid').val() === auth.uid && newData.child('driverId').val() === root.child('driverAccounts').child(auth.uid).child('driverId').val()) || (data.exists() && data.child('driverUid').val() === auth.uid && (newData.child('status').val() === data.child('status').val() || (data.child('status').val() === 'Accepted' && newData.child('status').val() === 'En route') || (data.child('status').val() === 'En route' && newData.child('status').val() === 'Arrived') || (data.child('status').val() === 'Arrived' && newData.child('status').val() === 'Picked up') || (data.child('status').val() === 'Picked up' && newData.child('status').val() === 'Completed'))))"
+      }
+    },
+    "driverAccounts": {
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || root.child('driverAccounts').child(auth.uid).child('role').val() === 'operator')",
+        ".write": "auth != null && root.child('driverAccounts').child(auth.uid).child('role').val() === 'operator'"
+      }
+    },
+    "drivers": {
+      ".read": "auth != null && root.child('driverAccounts').child(auth.uid).exists()",
+      "$driverId": {
+        ".write": "auth != null && (root.child('driverAccounts').child(auth.uid).child('driverId').val() === $driverId || root.child('driverAccounts').child(auth.uid).child('role').val() === 'operator')"
+      }
+    },
+    "serviceStatus": {
+      ".read": true,
+      ".write": "auth != null && root.child('driverAccounts').child(auth.uid).child('role').val() === 'operator'"
+    }
+  }
+}

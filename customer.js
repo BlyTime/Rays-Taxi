@@ -128,7 +128,7 @@ function showRideStatus(request) {
 
 function updateDriverCard(request, state) {
     const profile = request.driverProfile;
-    const driverAssigned = ["accepted", "en route", "arrived"].includes(state);
+    const driverAssigned = ["accepted", "en route", "arrived", "picked up", "completed"].includes(state);
     driverCard.hidden = !driverAssigned || !profile;
 
     if (driverCard.hidden) return;
@@ -155,7 +155,9 @@ function setCustomerTaxiFollow(enabled) {
 }
 
 function updateLiveTracking(request, state) {
-    const trackingActive = ["en route", "arrived"].includes(state);
+    // The live approach map is useful while the taxi is coming. Once the
+    // driver arrives it is removed so the status page stays clean.
+    const trackingActive = state === "en route";
     liveTracking.hidden = !trackingActive;
 
     if (!trackingActive || !validMapPoint(request) || !window.L) return;
