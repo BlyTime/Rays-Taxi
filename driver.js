@@ -7,6 +7,7 @@ const requestsRef = ref(database, "requests");
 const mapStatus = document.getElementById("mapStatus");
 const logoutButton = document.getElementById("logoutButton");
 const centerDriverButton = document.getElementById("centerDriver");
+const dashboardViewToggle = document.getElementById("dashboardViewToggle");
 const serviceAvailableInput = document.getElementById("serviceAvailable");
 const serviceMessageInput = document.getElementById("serviceMessage");
 const saveServiceStatusButton = document.getElementById("saveServiceStatus");
@@ -158,20 +159,21 @@ function renderRequests(data, newRequestIds = new Set()) {
                         <span class="status status-${expired ? "timed-out" : statusKey}">${expired ? "Timed out" : status}</span>
                     </div>
                     <div class="request-heading request-name-row">
-                        <h2><span class="ride-colour-dot" aria-hidden="true"></span>👤 ${passenger}</h2>
+                        <h2><span class="ride-colour-dot" aria-hidden="true"></span>${phone
+                            ? `<a class="request-detail-link passenger-message-link" href="https://wa.me/${phone}" target="_blank" rel="noopener" title="Message ${passenger} on WhatsApp">👤 ${passenger}</a>`
+                            : `<span class="request-detail-disabled">👤 ${passenger}</span>`}</h2>
                     </div>
                     <div class="request-meta">
-                        <span>📞 ${phone ? `+${phone}` : "Phone unavailable"}</span>
+                        <span>${phone
+                            ? `<a class="request-detail-link" href="tel:+${phone}" title="Call ${passenger}">📞 +${phone}</a>`
+                            : `<span class="request-detail-disabled">📞 Phone unavailable</span>`}</span>
                         <span>⏱️ <span data-created="${escapeHtml(request.created || "")}" data-ended="${escapeHtml(waitingEndedAt)}">${waitingText(request.created, waitingEndedAt)}</span></span>
-                        <span>📡 <strong>${gpsStatus}</strong> · ${accuracy}</span>
+                        <span>${hasLocation
+                            ? `<a class="request-detail-link" href="${directionsUrl(request)}" target="_blank" rel="noopener" title="Open directions to ${passenger}">📡 <strong>${gpsStatus}</strong> · ${accuracy}</a>`
+                            : `<span class="request-detail-disabled">📡 <strong>${gpsStatus}</strong> · ${accuracy}</span>`}</span>
                         ${showTripMeter ? `<span class="trip-meter">🛣️ Trip: <strong>${formatKilometres(request.tripDistanceKm)}</strong></span>` : ""}
                     </div>
                     <div class="request-footer">
-                        <div class="request-actions">
-                            <a class="action ${hasLocation ? "" : "is-disabled"}" href="${hasLocation ? directionsUrl(request) : "#"}" target="_blank" rel="noopener" aria-label="Navigate to pickup" ${hasLocation ? "" : "aria-disabled=\"true\""}>🧭</a>
-                            <a class="action ${phone ? "" : "is-disabled"}" href="${phone ? `https://wa.me/${phone}` : "#"}" target="_blank" rel="noopener" aria-label="Open WhatsApp" ${phone ? "" : "aria-disabled=\"true\""}>💬</a>
-                            <a class="action ${phone ? "" : "is-disabled"}" href="${phone ? `tel:+${phone}` : "#"}" aria-label="Call passenger" ${phone ? "" : "aria-disabled=\"true\""}>📞</a>
-                        </div>
                         <button class="ride-step" type="button" data-request-id="${escapeHtml(key)}" data-next-status="${step ? step.nextStatus : ""}" data-timestamp-field="${step ? step.timestamp : ""}" ${step ? "" : "disabled"}>
                             ${step ? step.label : expired ? "⌛ Request timed out" : currentStatus.toLowerCase() === "cancelled" ? "✕ Request cancelled" : belongsToThisDriver ? "✓ Ride completed" : "🚕 Taken by another driver"}
                         </button>
@@ -428,6 +430,13 @@ logoutButton.addEventListener("click", async () => {
 });
 centerDriverButton.addEventListener("click", () => {
     if (lastDriverLocation && map) map.setView([Number(lastDriverLocation.latitude), Number(lastDriverLocation.longitude)], 16);
+});
+
+dashboardViewToggle.addEventListener("click", () => {
+    const mapFocused = document.body.classList.toggle("dashboard-map-focused");
+    dashboardViewToggle.setAttribute("aria-pressed", String(mapFocused));
+    dashboardViewToggle.textContent = mapFocused ? "📋 Show rides" : "🗺️ Focus map";
+    if (mapFocused) setTimeout(() => map?.invalidateSize(), 0);
 });
 
 function enableDriverAlerts() {

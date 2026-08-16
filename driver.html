@@ -26,7 +26,7 @@
             <p id="mapStatus" class="dashboard-map-status">Loading driver dashboard…</p>
         </div>
         <div class="device-mode-controls">
-            <a class="device-mode drive-mode-link" href="driver-map.html">🚗 Drive mode</a>
+            <button id="dashboardViewToggle" class="device-mode drive-mode-link" type="button" aria-pressed="false">🗺️ Focus map</button>
             <a class="device-mode history-link" href="history.html">📋 History</a>
             <button id="logoutButton" class="device-mode logout-button" type="button">↪ Log out</button>
         </div>
@@ -46,16 +46,18 @@
         <p id="serviceStatusSaved" class="service-status-saved" aria-live="polite"></p>
     </section>
 
-    <section class="dashboard-map-panel">
-        <div id="driverMap" aria-label="Live pickup map"></div>
-        <p class="map-note">Pins appear before acceptance. GPS comes from the BLY RIDE Beacon app.</p>
-        <button id="centerDriver" class="center-driver" type="button">📍 My location</button>
-    </section>
+    <div class="dashboard-workspace">
+        <section class="dashboard-map-panel">
+            <div id="driverMap" aria-label="Live pickup map"></div>
+            <p class="map-note">Pins appear before acceptance. GPS comes from the BLY RIDE Beacon app.</p>
+            <button id="centerDriver" class="center-driver" type="button">📍 My location</button>
+        </section>
 
-    <section class="dashboard-requests">
-        <h2>Ride requests</h2>
-        <div id="requestList"><p>Waiting for requests...</p></div>
-    </section>
+        <section class="dashboard-requests">
+            <h2>Ride requests</h2>
+            <div id="requestList"><p>Waiting for requests...</p></div>
+        </section>
+    </div>
 
 </div>
 

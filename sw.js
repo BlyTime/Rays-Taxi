@@ -1,4 +1,4 @@
-const CACHE_NAME = "rays-taxi-v19-customer-layout";
+const CACHE_NAME = "rays-taxi-v20-driver-layout";
 const APP_SHELL = [
     "./",
     "./index.html",
