@@ -1,4 +1,4 @@
-const CACHE_NAME = "rays-taxi-v20-driver-layout";
+const CACHE_NAME = "rays-taxi-v21-beacon-meter-launch";
 const APP_SHELL = [
     "./",
     "./index.html",

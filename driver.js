@@ -105,6 +105,27 @@ function formatKilometres(distance) {
     return `${Math.max(0, Number(distance) || 0).toFixed(2)} km`;
 }
 
+function openBeaconBookedMeter(requestId) {
+    if (!/Android/i.test(navigator.userAgent)) {
+        alert("Passenger is onboard. Open the BLY RIDE Beacon app on this Android device to start the fare meter.");
+        return;
+    }
+    const fallback = new URL(window.location.href);
+    fallback.searchParams.set("meterAppMissing", "1");
+    fallback.hash = "";
+    const intentUrl = `intent://ride/start?requestId=${encodeURIComponent(requestId)}` +
+        `#Intent;scheme=blyride;package=com.blytime.blyride.gps;` +
+        `S.browser_fallback_url=${encodeURIComponent(fallback.href)};end`;
+    window.location.assign(intentUrl);
+}
+
+if (new URL(window.location.href).searchParams.get("meterAppMissing") === "1") {
+    const cleanUrl = new URL(window.location.href);
+    cleanUrl.searchParams.delete("meterAppMissing");
+    window.history.replaceState({}, "", cleanUrl);
+    alert("The ride is marked Passenger onboard, but Android could not open BLY RIDE Beacon. Check that the latest Beacon app is installed on this device.");
+}
+
 function playNewRequestSound() {
     if (!alertsEnabled || !audioContext) return;
     [0, 0.22].forEach((delay, index) => {
@@ -396,13 +417,15 @@ requestsDiv.addEventListener("click", async (event) => {
 
     const button = event.target.closest(".ride-step");
     if (!button || button.disabled) return;
+    const requestId = button.dataset.requestId;
+    const nextStatus = button.dataset.nextStatus;
     button.disabled = true;
     button.textContent = "Updating…";
 
     try {
         const timestamp = new Date().toISOString();
-        const requestRef = ref(database, `requests/${button.dataset.requestId}`);
-        if (button.dataset.nextStatus === "Accepted") {
+        const requestRef = ref(database, `requests/${requestId}`);
+        if (nextStatus === "Accepted") {
             const { driverUid, ...profileForCustomer } = currentDriverProfile || getDefaultDriverProfile(auth.currentUser.uid);
             const result = await runTransaction(requestRef, (request) => {
                 if (!request || String(request.status || "").toLowerCase() !== "waiting") return;
@@ -411,9 +434,10 @@ requestsDiv.addEventListener("click", async (event) => {
             });
             if (!result.committed) alert("Another driver accepted this request first.");
         } else {
-            const changes = { status: button.dataset.nextStatus, [button.dataset.timestampField]: timestamp, statusUpdatedAt: timestamp };
-            if (button.dataset.nextStatus === "Picked up") changes.driverLocation = null;
+            const changes = { status: nextStatus, [button.dataset.timestampField]: timestamp, statusUpdatedAt: timestamp };
+            if (nextStatus === "Picked up") changes.driverLocation = null;
             await update(requestRef, changes);
+            if (nextStatus === "Picked up") openBeaconBookedMeter(requestId);
         }
     } catch (error) {
         console.error("Could not update ride status:", error);
